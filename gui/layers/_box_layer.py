@@ -59,7 +59,7 @@ class Box(Layer):
 
         self.name = 'box'
         self._qt = QtBoxLayer(self)
-        #self._selected_box = None
+        self._selected_boxes = None
 
     @property
     def coords(self) -> np.ndarray:
@@ -195,36 +195,60 @@ class Box(Layer):
         else:
             return [], []
 
-    # def _set_selected_markers(self, indices):
-    #     """Determines selected markers selected given indices.
-    #
-    #     Parameters
-    #     ----------
-    #     indices : sequence of int
-    #         Indices to check if marker at.
-    #     """
-    #     in_slice_markers, matches = self._slice_markers(indices)
-    #
-    #     # Display markers if there are any in this slice
-    #     if len(in_slice_markers) > 0:
-    #         distances = abs(in_slice_markers - np.broadcast_to(indices[:2], (len(in_slice_markers),2)))
-    #         # Get the marker sizes
-    #         if isinstance(self.size, (list, np.ndarray)):
-    #             sizes = self.size[matches]
-    #         else:
-    #             sizes = self.size
-    #         matches = np.where(matches)[0]
-    #         in_slice_matches = np.less_equal(distances, np.broadcast_to(sizes/2, (2, len(in_slice_markers))).T)
-    #         in_slice_matches = np.all(in_slice_matches, axis=1)
-    #         indices = np.where(in_slice_matches)[0]
-    #         if len(indices) > 0:
-    #             matches = matches[indices[-1]]
-    #         else:
-    #             matches = None
-    #     else:
-    #         matches = None
-    #
-    #     self._selected_markers = matches
+    def _set_selected_boxes(self, indices):
+        """Determines selected boxes selected given indices.
+
+        Parameters
+        ----------
+        indices : sequence of int
+            Indices to check if box at.
+        """
+        in_slice_boxes, matches = self._slice_boxes(indices)
+
+        # Check boxes if there are any in this slice
+        if len(in_slice_boxes) > 0:
+            matches = matches.nonzero()[0]
+            boxes = []
+            for box in in_slice_boxes:
+                tl = [min(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+                tr = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+                br = [max(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+                bl = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+                boxes.append([tl, tr, br, bl])
+            in_slice_boxes = np.array(boxes)
+
+            offsets = np.broadcast_to(indices[:2], (len(in_slice_boxes), 4, 2)) - in_slice_boxes
+            distances = abs(offsets)
+
+            # Get the vertex sizes
+            sizes = self.size
+
+            # Check if any matching vertices
+            in_slice_matches = np.less_equal(distances, np.broadcast_to(sizes/2, (2, 4, len(in_slice_boxes))).T)
+            in_slice_matches = np.all(in_slice_matches, axis=2)
+            indices = in_slice_matches.nonzero()
+
+            if len(indices[0]) > 0:
+                matches = matches[indices[0][-1]]
+                vertex = indices[1][-1]
+            else:
+                # If no matching vertex check if index inside bounding box
+                in_slice_matches = np.all(np.array([np.all(offsets[:,0]>=0, axis=1), np.all(offsets[:,2]<=0, axis=1)]), axis=0)
+                indices = in_slice_matches.nonzero()
+                if len(indices[0]) > 0:
+                    matches = matches[indices[0][-1]]
+                    vertex = None
+                else:
+                    matches = None
+                    vertex = None
+        else:
+            matches = None
+            vertex = None
+
+        if matches is None:
+            self._selected_boxes = None
+        else:
+            self._selected_boxes = [matches, vertex]
 
     def _set_view_slice(self, indices):
         """Sets the view given the indices to slice with.
@@ -241,8 +265,11 @@ class Box(Layer):
         if len(in_slice_boxes) > 0:
             boxes = []
             for box in in_slice_boxes:
-                boxes.append([box[0], [box[0][0], box[1][1]], box[1],  [box[1][0], box[0][1]]])
-
+                tl = [min(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+                tr = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+                br = [max(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+                bl = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+                boxes.append([tl, tr, br, bl])
             # Update the boxes node
             data = np.array(boxes) + 0.5
             #data = data[0]
@@ -256,47 +283,51 @@ class Box(Layer):
         self._need_visual_update = True
         self._update()
 
-    # def _get_coord(self, position, indices):
-    #     max_shape = self.viewer.dimensions.max_shape
-    #     transform = self.viewer._canvas.scene.node_transform(self._node)
-    #     pos = transform.map(position)
-    #     pos = [clip(pos[1],0,max_shape[0]-1), clip(pos[0],0,max_shape[1]-1)]
-    #     coord = copy(indices)
-    #     coord[0] = int(pos[1])
-    #     coord[1] = int(pos[0])
-    #     return coord
-    #
-    # def get_value(self, position, indices):
-    #     """Returns coordinates, values, and a string
-    #     for a given mouse position and set of indices.
-    #
-    #     Parameters
-    #     ----------
-    #     position : sequence of two int
-    #         Position of mouse cursor in canvas.
-    #     indices : sequence of int or slice
-    #         Indices that make up the slice.
-    #
-    #     Returns
-    #     ----------
-    #     coord : sequence of int
-    #         Position of mouse cursor in data.
-    #     value : int or float or sequence of int or float
-    #         Value of the data at the coord.
-    #     msg : string
-    #         String containing a message that can be used as
-    #         a status update.
-    #     """
-    #     coord = self._get_coord(position, indices)
-    #     self._set_selected_markers(coord)
-    #     value = self._selected_markers
-    #     msg = f'{coord}'
-    #     if value is None:
-    #         pass
-    #     else:
-    #         msg = msg + ', %s, index %d' % (self.name, value)
-    #     return coord, value, msg
-    #
+    def _get_coord(self, position, indices):
+        max_shape = self.viewer.dimensions.max_shape
+        transform = self.viewer._canvas.scene.node_transform(self._node)
+        pos = transform.map(position)
+        pos = [clip(pos[1],0,max_shape[0]-1), clip(pos[0],0,max_shape[1]-1)]
+        coord = copy(indices)
+        coord[0] = int(pos[1])
+        coord[1] = int(pos[0])
+        return coord
+
+    def get_value(self, position, indices):
+        """Returns coordinates, values, and a string
+        for a given mouse position and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+
+        Returns
+        ----------
+        coord : sequence of int
+            Position of mouse cursor in data.
+        value : int or float or sequence of int or float
+            Value of the data at the coord.
+        msg : string
+            String containing a message that can be used as
+            a status update.
+        """
+        coord = self._get_coord(position, indices)
+        self._set_selected_boxes(coord)
+        value = self._selected_boxes
+        msg = f'{coord}'
+        if value is None:
+            pass
+        else:
+            msg = msg + ', %s, index %d' % (self.name, value[0])
+            if value[1] is None:
+                pass
+            else:
+                msg = msg + ', vertex %d' % value[1]
+        return coord, value, msg
+
     # def add(self, position, indices):
     #     """Returns coordinates, values, and a string
     #     for a given mouse position and set of indices.

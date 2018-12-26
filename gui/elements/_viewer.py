@@ -196,12 +196,13 @@ class Viewer:
     def _update_active_layers(self, event):
         from ..layers._image_layer import Image
         from ..layers._markers_layer import Markers
+        from ..layers._box_layer import Box
         top_markers = []
         for i, layer in enumerate(self.layers[::-1]):
             if layer.visible and isinstance(layer, Image):
                 top_image = len(self.layers) - 1 - i
                 break
-            elif layer.visible and isinstance(layer, Markers):
+            elif layer.visible and (isinstance(layer, Markers) or isinstance(layer, Box)):
                 top_markers.append(len(self.layers) - 1 - i)
         else:
             top_image = None
