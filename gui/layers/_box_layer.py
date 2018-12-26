@@ -7,7 +7,7 @@ from copy import copy
 
 from ._base_layer import Layer
 from ._register import add_to_viewer
-from .._vispy.scene.visuals import Polygon as PolygonNode
+from .._vispy.scene.visuals import PolygonList as PolygonNode
 from vispy.color import get_color_names
 
 from .qt import QtBoxLayer
@@ -39,7 +39,7 @@ class Box(Layer):
 
     def __init__(self, coords, edge_width=1, size=10, vertex_color = 'black', edge_color='black', face_color='white'):
 
-        visual = PolygonNode()
+        visual = PolygonNode(border_method='agg')
         super().__init__(visual)
 
         # Save the bbox coordinates
@@ -245,7 +245,7 @@ class Box(Layer):
 
             # Update the boxes node
             data = np.array(boxes) + 0.5
-            data = data[0]
+            #data = data[0]
         else:
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
