@@ -392,8 +392,8 @@ class Markers(Layer):
         return coord, value, msg
 
     def add(self, position, indices):
-        """Returns coordinates, values, and a string
-        for a given mouse position and set of indices.
+        """Adds object at given mouse position
+        and set of indices.
 
         Parameters
         ----------
@@ -409,8 +409,8 @@ class Markers(Layer):
         self._selected_markers = len(self.data)-1
 
     def remove(self, position, indices):
-        """Returns coordinates, values, and a string
-        for a given mouse position and set of indices.
+        """Removes object at given mouse position
+        and set of indices.
 
         Parameters
         ----------
@@ -430,8 +430,8 @@ class Markers(Layer):
             self._selected_markers = None
 
     def move(self, position, indices):
-        """Returns coordinates, values, and a string
-        for a given mouse position and set of indices.
+        """Moves object at given mouse position 
+        and set of indices.
 
         Parameters
         ----------

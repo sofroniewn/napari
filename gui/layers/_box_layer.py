@@ -173,6 +173,13 @@ class Box(Layer):
         self._need_display_update = True
         self._update()
 
+    def _expand_box(self, box):
+        tl = [min(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+        tr = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+        br = [max(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+        bl = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+        return [tl, tr, br, bl]
+
     def _slice_boxes(self, indices):
         """Determines the slice of boxes given the indices.
 
@@ -210,11 +217,7 @@ class Box(Layer):
             matches = matches.nonzero()[0]
             boxes = []
             for box in in_slice_boxes:
-                tl = [min(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
-                tr = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
-                br = [max(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
-                bl = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
-                boxes.append([tl, tr, br, bl])
+                boxes.append(self._expand_box(box))
             in_slice_boxes = np.array(boxes)
 
             offsets = np.broadcast_to(indices[:2], (len(in_slice_boxes), 4, 2)) - in_slice_boxes
@@ -265,11 +268,8 @@ class Box(Layer):
         if len(in_slice_boxes) > 0:
             boxes = []
             for box in in_slice_boxes:
-                tl = [min(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
-                tr = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
-                br = [max(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
-                bl = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
-                boxes.append([tl, tr, br, bl])
+                boxes.append(self._expand_box(box))
+
             # Update the boxes node
             data = np.array(boxes) + 0.5
             #data = data[0]
@@ -366,21 +366,25 @@ class Box(Layer):
     #         self.data = delete(self.data, index, axis=0)
     #         self._selected_markers = None
     #
-    # def move(self, position, indices):
-    #     """Returns coordinates, values, and a string
-    #     for a given mouse position and set of indices.
-    #
-    #     Parameters
-    #     ----------
-    #     position : sequence of two int
-    #         Position of mouse cursor in canvas.
-    #     indices : sequence of int or slice
-    #         Indices that make up the slice.
-    #     """
-    #     coord = self._get_coord(position, indices)
-    #     index = self._selected_markers
-    #     if index is None:
-    #         pass
-    #     else:
-    #         self.data[index] = coord
-    #         self._refresh()
+    def move(self, position, indices):
+        """Moves object at given mouse position 
+        and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        coord = self._get_coord(position, indices)
+        index = self._selected_boxes
+        if index is None:
+            pass
+        else:
+            if index[1] is None:
+                pass
+            else:
+                box = self._expand_box(self.data[index[0]])
+                self.data[index[0]] = [coord, box[np.mod(index[1]+2,4)]]
+                self._refresh()
