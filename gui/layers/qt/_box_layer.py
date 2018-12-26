@@ -4,7 +4,7 @@ from collections import Iterable
 import numpy as np
 from ._base_layer import QtLayer
 
-class QtMarkersLayer(QtLayer):
+class QtBoxLayer(QtLayer):
     def __init__(self, layer):
         super().__init__(layer)
 
@@ -25,6 +25,23 @@ class QtMarkersLayer(QtLayer):
         self.grid_layout.addWidget(QLabel('size:'), 3, 0)
         self.grid_layout.addWidget(sld, 3, 1)
 
+        sld = QSlider(Qt.Horizontal, self)
+        sld.setFocusPolicy(Qt.NoFocus)
+        #sld.setInvertedAppearance(True)
+        sld.setFixedWidth(75)
+        sld.setMinimum(0)
+        sld.setMaximum(100)
+        sld.setSingleStep(1)
+        value = self.layer.size
+        if isinstance(value, Iterable):
+            if isinstance(value, list):
+                value = np.asarray(value)
+            value = value.mean()
+        sld.setValue(int(value))
+        sld.valueChanged[int].connect(lambda value=sld: self.changeWidth(value))
+        self.grid_layout.addWidget(QLabel('width:'), 4, 0)
+        self.grid_layout.addWidget(sld, 4, 1)
+
         face_comboBox = QComboBox()
         colors = self.layer._colors
         for c in colors:
@@ -33,8 +50,8 @@ class QtMarkersLayer(QtLayer):
         if index >= 0:
            face_comboBox.setCurrentIndex(index)
         face_comboBox.activated[str].connect(lambda text=face_comboBox: self.changeFaceColor(text))
-        self.grid_layout.addWidget(QLabel('face_color:'), 4, 0)
-        self.grid_layout.addWidget(face_comboBox, 4, 1)
+        self.grid_layout.addWidget(QLabel('face_color:'), 5, 0)
+        self.grid_layout.addWidget(face_comboBox, 5, 1)
 
         edge_comboBox = QComboBox()
         colors = self.layer._colors
@@ -44,19 +61,19 @@ class QtMarkersLayer(QtLayer):
         if index >= 0:
            edge_comboBox.setCurrentIndex(index)
         edge_comboBox.activated[str].connect(lambda text=edge_comboBox: self.changeEdgeColor(text))
-        self.grid_layout.addWidget(QLabel('edge_color:'), 5, 0)
-        self.grid_layout.addWidget(edge_comboBox, 5, 1)
+        self.grid_layout.addWidget(QLabel('edge_color:'), 6, 0)
+        self.grid_layout.addWidget(edge_comboBox, 6, 1)
 
-        symbol_comboBox = QComboBox()
-        symbols = self.layer._marker_types
-        for s in symbols:
-           symbol_comboBox.addItem(s)
-        index = symbol_comboBox.findText(self.layer.symbol, Qt.MatchFixedString)
+        vertex_comboBox = QComboBox()
+        colors = self.layer._colors
+        for c in colors:
+           vertex_comboBox.addItem(c)
+        index = vertex_comboBox.findText(self.layer.vertex_color, Qt.MatchFixedString)
         if index >= 0:
-           symbol_comboBox.setCurrentIndex(index)
-        symbol_comboBox.activated[str].connect(lambda text=symbol_comboBox: self.changeSymbol(text))
-        self.grid_layout.addWidget(QLabel('symbol:'), 6, 0)
-        self.grid_layout.addWidget(symbol_comboBox, 6, 1)
+           vertex_comboBox.setCurrentIndex(index)
+        vertex_comboBox.activated[str].connect(lambda text=vertex_comboBox: self.changeVertexColor(text))
+        self.grid_layout.addWidget(QLabel('vertex_color:'), 7, 0)
+        self.grid_layout.addWidget(vertex_comboBox, 7, 1)
 
         self.setExpanded(False)
 
@@ -66,8 +83,11 @@ class QtMarkersLayer(QtLayer):
     def changeEdgeColor(self, text):
         self.layer.edge_color = text
 
-    def changeSymbol(self, text):
-        self.layer.symbol = text
+    def changeVertexColor(self, text):
+        self.layer.vertex_color = text
 
     def changeSize(self, value):
         self.layer.size = value
+
+    def changeWidth(self, value):
+        self.layer.edge_width = value
