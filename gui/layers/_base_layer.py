@@ -163,7 +163,7 @@ class Layer(VisualWrapper, ABC):
         return None, None, ''
 
     def add(self, position, indices):
-        """Adds object at given mouse position 
+        """Adds object at given mouse position
         and set of indices.
 
         Parameters
@@ -190,6 +190,19 @@ class Layer(VisualWrapper, ABC):
 
     def move(self, position, indices):
         """Moves object at given mouse position
+        and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        return
+
+    def select(self, position, indices, state):
+        """Highlights object at given mouse position
         and set of indices.
 
         Parameters

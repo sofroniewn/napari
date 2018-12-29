@@ -354,7 +354,7 @@ class Markers(Layer):
         max_shape = self.viewer.dimensions.max_shape
         transform = self.viewer._canvas.scene.node_transform(self._node)
         pos = transform.map(position)
-        pos = [clip(pos[1],0,max_shape[0]-1), clip(pos[0],0,max_shape[1]-1)]
+        pos = [clip(pos[1],0,max_shape[0]), clip(pos[0],0,max_shape[1])]
         coord = copy(indices)
         coord[0] = int(pos[1])
         coord[1] = int(pos[0])
@@ -430,7 +430,7 @@ class Markers(Layer):
             self._selected_markers = None
 
     def move(self, position, indices):
-        """Moves object at given mouse position 
+        """Moves object at given mouse position
         and set of indices.
 
         Parameters

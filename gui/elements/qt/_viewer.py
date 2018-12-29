@@ -70,9 +70,12 @@ class QtViewer(QSplitter):
         if event.pos is None:
             return
         self.viewer.position = event.pos
-        if event.is_dragging and self.viewer.annotation and 'Shift' in event.modifiers and self.viewer._active_markers:
+        if self.viewer.annotation and 'Shift' in event.modifiers and self.viewer._active_markers:
             layer = self.viewer.layers[self.viewer._active_markers]
-            layer.move(self.viewer.position, self.viewer.dimensions.indices)
+            if event.is_dragging:
+                layer.move(self.viewer.position, self.viewer.dimensions.indices)
+            else:
+                layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
         self.viewer._update_status()
 
     def on_mouse_press(self, event):
@@ -103,16 +106,29 @@ class QtViewer(QSplitter):
                     self.view.interactive = True
                     self.viewer.annotation = False
                     self.canvas.native.setCursor(self._cursors['standard'])
+                    if self.viewer._active_markers:
+                        layer = self.viewer.layers[self.viewer._active_markers]
+                        layer.select(self.viewer.position, self.viewer.dimensions.indices, False)
                 else:
                     self.viewer._annotation_history = False
             elif event.key == 'Shift':
                 if self.viewer.annotation and self.viewer._active_markers:
                     self.canvas.native.setCursor(self._cursors['pointing'])
+                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
             elif event.key == 'Meta':
                 if self.viewer.annotation and self.viewer._active_markers:
                     self.canvas.native.setCursor(self._cursors['forbidden'])
+                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
             elif event.key == 'a':
                 self.viewer._set_annotation(not self.viewer.annotation)
+                if self.viewer.annotation and self.viewer._active_markers:
+                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
+                elif self.viewer._active_markers:
+                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer.select(self.viewer.position, self.viewer.dimensions.indices, False)
 
     def on_key_release(self, event):
         if event.key == ' ':
@@ -134,3 +150,6 @@ class QtViewer(QSplitter):
                     self.canvas.native.setCursor(self._cursors['cross'])
                 else:
                     self.canvas.native.setCursor(self._cursors['disabled'])
+        if self.viewer._active_markers:
+            layer = self.viewer.layers[self.viewer._active_markers]
+            layer.select(self.viewer.position, self.viewer.dimensions.indices, False)

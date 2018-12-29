@@ -60,6 +60,8 @@ class Box(Layer):
         self.name = 'box'
         self._qt = QtBoxLayer(self)
         self._selected_boxes = None
+        self._selected_boxes_stored = None
+        self.highlight = False
 
     @property
     def coords(self) -> np.ndarray:
@@ -277,9 +279,23 @@ class Box(Layer):
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
 
-        self._node.set_data(
-            data, border_width=self.edge_width, vertex_color=self.vertex_color,
-            border_color=self.edge_color, color=self.face_color, size=self.size)
+        if self.highlight:
+            vertex_color = [self.vertex_color for i in range(len(data))]
+            edge_color = [self.edge_color for i in range(len(data))]
+            face_color = [self.face_color for i in range(len(data))]
+            if self._selected_boxes[1] is None:
+                edge_color[self._selected_boxes[0]] = 'red'
+                face_color[self._selected_boxes[0]] = 'red'
+            else:
+                vertex_color[self._selected_boxes[0]] = 'red'
+            self._node.set_data(
+                data, border_width=self.edge_width, vertex_color=vertex_color,
+                border_color=edge_color, color=face_color, size=self.size)
+            self.highlight = False
+        else:
+            self._node.set_data(
+                data, border_width=self.edge_width, vertex_color=self.vertex_color,
+                border_color=self.edge_color, color=self.face_color, size=self.size)
         self._need_visual_update = True
         self._update()
 
@@ -287,7 +303,7 @@ class Box(Layer):
         max_shape = self.viewer.dimensions.max_shape
         transform = self.viewer._canvas.scene.node_transform(self._node)
         pos = transform.map(position)
-        pos = [clip(pos[1],0,max_shape[0]-1), clip(pos[0],0,max_shape[1]-1)]
+        pos = [clip(pos[1],0,max_shape[0]), clip(pos[0],0,max_shape[1])]
         coord = copy(indices)
         coord[0] = int(pos[1])
         coord[1] = int(pos[0])
@@ -328,46 +344,48 @@ class Box(Layer):
                 msg = msg + ', vertex %d' % value[1]
         return coord, value, msg
 
-    # def add(self, position, indices):
-    #     """Returns coordinates, values, and a string
-    #     for a given mouse position and set of indices.
-    #
-    #     Parameters
-    #     ----------
-    #     position : sequence of two int
-    #         Position of mouse cursor in canvas.
-    #     indices : sequence of int or slice
-    #         Indices that make up the slice.
-    #     """
-    #     coord = self._get_coord(position, indices)
-    #     if isinstance(self.size, (list, ndarray)):
-    #         self._size = append(self.size, 10)
-    #     self.data = append(self.data, [coord], axis=0)
-    #     self._selected_markers = len(self.data)-1
-    #
-    # def remove(self, position, indices):
-    #     """Returns coordinates, values, and a string
-    #     for a given mouse position and set of indices.
-    #
-    #     Parameters
-    #     ----------
-    #     position : sequence of two int
-    #         Position of mouse cursor in canvas.
-    #     indices : sequence of int or slice
-    #         Indices that make up the slice.
-    #     """
-    #     coord = self._get_coord(position, indices)
-    #     index = self._selected_markers
-    #     if index is None:
-    #         pass
-    #     else:
-    #         if isinstance(self.size, (list, ndarray)):
-    #             self._size = delete(self.size, index)
-    #         self.data = delete(self.data, index, axis=0)
-    #         self._selected_markers = None
-    #
+    def add(self, position, indices):
+        """Returns coordinates, values, and a string
+        for a given mouse position and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        coord = self._get_coord(position, indices)
+        self.data = append(self.data, [[coord, [coord[0]+10, coord[1]+10]]], axis=0)
+        self._selected_boxes = [len(self.data)-1, None]
+        self.highlight = True
+        self._selected_boxes_stored = self._selected_boxes
+        self._refresh()
+
+    def remove(self, position, indices):
+        """Returns coordinates, values, and a string
+        for a given mouse position and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        coord = self._get_coord(position, indices)
+        index = self._selected_boxes
+        if index is None:
+            pass
+        else:
+            self.data = delete(self.data, index[0], axis=0)
+            self._selected_boxes = None
+            self._selected_boxes_stored = None
+            self.highlight = False
+            self._refresh()
+
     def move(self, position, indices):
-        """Moves object at given mouse position 
+        """Moves object at given mouse position
         and set of indices.
 
         Parameters
@@ -383,8 +401,49 @@ class Box(Layer):
             pass
         else:
             if index[1] is None:
-                pass
+                box = self._expand_box(self.data[index[0]])
+                tl = [coord[0] - (box[2][0]-box[0][0])/2, coord[1] - (box[2][1]-box[0][1])/2]
+                br = [coord[0] + (box[2][0]-box[0][0])/2, coord[1] + (box[2][1]-box[0][1])/2]
+
+                # clip box if goes of edge
+                max_shape = self.viewer.dimensions.max_shape
+                tl = [clip(tl[0],0,max_shape[0]-1), clip(tl[1],0,max_shape[1])]
+                br = [clip(br[0],0,max_shape[0]-1), clip(br[1],0,max_shape[1])]
+
+                self.data[index[0]] = [tl, br]
             else:
                 box = self._expand_box(self.data[index[0]])
                 self.data[index[0]] = [coord, box[np.mod(index[1]+2,4)]]
+
+            self.highlight = True
+            self._selected_boxes_stored = index
+            self._refresh()
+
+    def select(self, position, indices, state):
+        """Highlights object at given mouse position
+        and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        if state:
+            coord = self._get_coord(position, indices)
+            self._set_selected_boxes(coord)
+            index = self._selected_boxes
+            if index == self._selected_boxes_stored:
+                pass
+            elif index is None:
+                self.highlight = False
                 self._refresh()
+                self._selected_boxes_stored = index
+            else:
+                self.highlight = True
+                self._refresh()
+                self._selected_boxes_stored = index
+        else:
+            self.highlight = False
+            self._refresh()
