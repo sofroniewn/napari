@@ -177,9 +177,9 @@ class Box(Layer):
 
     def _expand_box(self, box):
         tl = [min(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
-        tr = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
+        tr = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
         br = [max(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
-        bl = [max(box[0][0],box[1][0]), min(box[0][1],box[1][1])]
+        bl = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
         return [tl, tr, br, bl]
 
     def _slice_boxes(self, indices):
@@ -279,7 +279,7 @@ class Box(Layer):
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
 
-        if self.highlight:
+        if self.highlight and self._selected_boxes is not None:
             vertex_color = [self.vertex_color for i in range(len(data))]
             edge_color = [self.edge_color for i in range(len(data))]
             face_color = [self.face_color for i in range(len(data))]
@@ -389,10 +389,10 @@ class Box(Layer):
         if index is None:
             pass
         else:
-            self.data = delete(self.data, index[0], axis=0)
             self._selected_boxes = None
-            self._select(coord)
+            self.data = delete(self.data, index[0], axis=0)
             self._refresh()
+            self._select(coord)
 
     def _move(self, coord):
         """Moves object at given mouse position
@@ -414,15 +414,39 @@ class Box(Layer):
                 tl = [coord[0] - (box[2][0]-box[0][0])/2, coord[1] - (box[2][1]-box[0][1])/2]
                 br = [coord[0] + (box[2][0]-box[0][0])/2, coord[1] + (box[2][1]-box[0][1])/2]
 
-                # clip box if goes of edge
+                # block box move if goes of edge
                 max_shape = self.viewer.dimensions.max_shape
-                tl = [clip(tl[0],0,max_shape[0]-1), clip(tl[1],0,max_shape[1]-1)]
-                br = [clip(br[0],0,max_shape[0]-1), clip(br[1],0,max_shape[1]-1)]
-
+                if tl[0] < 0:
+                    br[0] = br[0] - tl[0]
+                    tl[0] = 0
+                if tl[1] < 0:
+                    br[1] = br[1] - tl[1]
+                    tl[1] = 0
+                if br[0] > max_shape[0]-1:
+                    tl[0] = max_shape[0]-1 - (br[0] - tl[0])
+                    br[0] = max_shape[0]-1
+                if br[1] > max_shape[1]-1:
+                    tl[1] = max_shape[1]-1 - (br[1] - tl[1])
+                    br[1] = max_shape[1]-1
                 self.data[index[0]] = [tl, br]
             else:
                 box = self._expand_box(self.data[index[0]])
-                self.data[index[0]] = [coord, box[np.mod(index[1]+2,4)]]
+                tl = coord
+                br = box[np.mod(index[1]+2,4)]
+                if tl[0]==br[0]:
+                    print('0')
+                    if index[1] == 1 or index[1] == 2:
+                        tl[0] = tl[0]+1
+                    else:
+                        tl[0] = tl[0]-1
+                if tl[1]==br[1]:
+                    print('1')
+                    if index[1] == 2 or index[1] == 3:
+                        tl[1] = tl[1]+1
+                    else:
+                        tl[1] = tl[1]-1
+
+                self.data[index[0]] = [tl, br]
 
             self.highlight = True
             self._selected_boxes_stored = index
