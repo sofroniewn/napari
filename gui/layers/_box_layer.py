@@ -291,7 +291,6 @@ class Box(Layer):
             self._node.set_data(
                 data, border_width=self.edge_width, vertex_color=vertex_color,
                 border_color=edge_color, color=face_color, size=self.size)
-            self.highlight = False
         else:
             self._node.set_data(
                 data, border_width=self.edge_width, vertex_color=self.vertex_color,
@@ -344,7 +343,7 @@ class Box(Layer):
                 msg = msg + ', vertex %d' % value[1]
         return coord, value, msg
 
-    def add(self, position, indices):
+    def _add(self, coord):
         """Returns coordinates, values, and a string
         for a given mouse position and set of indices.
 
@@ -355,14 +354,13 @@ class Box(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        coord = self._get_coord(position, indices)
         self.data = append(self.data, [[coord, [coord[0]+10, coord[1]+10]]], axis=0)
         self._selected_boxes = [len(self.data)-1, None]
-        self.highlight = True
+        #self.highlight = True
         self._selected_boxes_stored = self._selected_boxes
         self._refresh()
 
-    def remove(self, position, indices):
+    def _remove(self, coord):
         """Returns coordinates, values, and a string
         for a given mouse position and set of indices.
 
@@ -373,18 +371,16 @@ class Box(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        coord = self._get_coord(position, indices)
         index = self._selected_boxes
         if index is None:
             pass
         else:
             self.data = delete(self.data, index[0], axis=0)
             self._selected_boxes = None
-            self._selected_boxes_stored = None
-            self.highlight = False
+            self._select(coord)
             self._refresh()
 
-    def move(self, position, indices):
+    def _move(self, coord):
         """Moves object at given mouse position
         and set of indices.
 
@@ -395,7 +391,6 @@ class Box(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        coord = self._get_coord(position, indices)
         index = self._selected_boxes
         if index is None:
             pass
@@ -419,7 +414,7 @@ class Box(Layer):
             self._selected_boxes_stored = index
             self._refresh()
 
-    def select(self, position, indices, state):
+    def _select(self, coord):
         """Highlights object at given mouse position
         and set of indices.
 
@@ -430,20 +425,56 @@ class Box(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        if state:
-            coord = self._get_coord(position, indices)
-            self._set_selected_boxes(coord)
-            index = self._selected_boxes
-            if index == self._selected_boxes_stored:
-                pass
-            elif index is None:
-                self.highlight = False
-                self._refresh()
-                self._selected_boxes_stored = index
-            else:
-                self.highlight = True
-                self._refresh()
-                self._selected_boxes_stored = index
-        else:
+        self._set_selected_boxes(coord)
+        index = self._selected_boxes
+        if index == self._selected_boxes_stored:
+            pass
+        elif index is None:
             self.highlight = False
             self._refresh()
+            self._selected_boxes_stored = index
+        else:
+            self.highlight = True
+            self._refresh()
+            self._selected_boxes_stored = index
+
+    def interact(self, position, indices, annotation=True, dragging=False, shift=False, ctrl=False,
+        pressed=False, released=False, moving=False):
+        """Highlights object at given mouse position
+        and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        if self.highlight and not annotation:
+            #If no longer in annotation mode and hightlighing
+            #was turned on then turn off highlighting and refresh
+            self.highlight = False
+            self._refresh()
+        elif annotation:
+            #If in annotation mode
+            if pressed and not shift and not ctrl:
+                #Add a new box
+                coord = self._get_coord(position, indices)
+                self._add(coord)
+            elif pressed and ctrl:
+                #Delete an existing box if any
+                coord = self._get_coord(position, indices)
+                self._remove(coord)
+            elif moving and dragging and shift:
+                #Drag an existing box if any
+                coord = self._get_coord(position, indices)
+                self._move(coord)
+            elif shift or ctrl:
+                #Highlight boxes if any
+                coord = self._get_coord(position, indices)
+                self._select(coord)
+            else:
+                #Turn off highlight mode if it was on
+                if self.highlight:
+                    self.highlight = False
+                    self._refresh()

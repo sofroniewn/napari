@@ -70,12 +70,15 @@ class QtViewer(QSplitter):
         if event.pos is None:
             return
         self.viewer.position = event.pos
-        if self.viewer.annotation and 'Shift' in event.modifiers and self.viewer._active_markers:
-            layer = self.viewer.layers[self.viewer._active_markers]
-            if event.is_dragging:
-                layer.move(self.viewer.position, self.viewer.dimensions.indices)
-            else:
-                layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
+
+        if self.viewer.annotation and self.viewer._active_markers:
+             layer = self.viewer.layers[self.viewer._active_markers]
+             shift = 'Shift' in event.modifiers
+             ctrl = 'Meta' in event.modifiers
+             layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+             annotation=self.viewer.annotation, dragging=event.is_dragging,
+             shift=shift, ctrl=ctrl, pressed=False, released=False, moving=True)
+
         self.viewer._update_status()
 
     def on_mouse_press(self, event):
@@ -83,18 +86,24 @@ class QtViewer(QSplitter):
         """
         if self.viewer.annotation and self.viewer._active_markers:
             layer = self.viewer.layers[self.viewer._active_markers]
-            if 'Meta' in event.modifiers:
-                layer.remove(self.viewer.position, self.viewer.dimensions.indices)
-            elif 'Shift' in event.modifiers:
-                pass
-            else:
-                layer.add(self.viewer.position, self.viewer.dimensions.indices)
+            shift = 'Shift' in event.modifiers
+            ctrl = 'Meta' in event.modifiers
+            layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+            annotation=self.viewer.annotation, dragging=event.is_dragging,
+            shift=shift, ctrl=ctrl, pressed=True, released=False, moving=False)
             self.viewer._update_status()
 
     def on_mouse_release(self, event):
         """Called whenever mouse released in canvas.
         """
-        return
+        if self.viewer.annotation and self.viewer._active_markers:
+            layer = self.viewer.layers[self.viewer._active_markers]
+            shift = 'Shift' in event.modifiers
+            ctrl = 'Meta' in event.modifiers
+            layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+            annotation=self.viewer.annotation, dragging=event.is_dragging,
+            shift=shift, ctrl=ctrl, pressed=False, released=True, moving=False)
+            self.viewer._update_status()
 
     def on_key_press(self, event):
         if event.native.isAutoRepeat():
@@ -106,29 +115,24 @@ class QtViewer(QSplitter):
                     self.view.interactive = True
                     self.viewer.annotation = False
                     self.canvas.native.setCursor(self._cursors['standard'])
-                    if self.viewer._active_markers:
-                        layer = self.viewer.layers[self.viewer._active_markers]
-                        layer.select(self.viewer.position, self.viewer.dimensions.indices, False)
                 else:
                     self.viewer._annotation_history = False
             elif event.key == 'Shift':
                 if self.viewer.annotation and self.viewer._active_markers:
                     self.canvas.native.setCursor(self._cursors['pointing'])
                     layer = self.viewer.layers[self.viewer._active_markers]
-                    layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
+                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                    annotation=self.viewer.annotation, dragging=False,
+                    shift=True, ctrl=False, pressed=False, released=False, moving=False)
             elif event.key == 'Meta':
                 if self.viewer.annotation and self.viewer._active_markers:
                     self.canvas.native.setCursor(self._cursors['forbidden'])
                     layer = self.viewer.layers[self.viewer._active_markers]
-                    layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
+                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                    annotation=self.viewer.annotation, dragging=False,
+                    shift=False, ctrl=True, pressed=False, released=False, moving=False)
             elif event.key == 'a':
                 self.viewer._set_annotation(not self.viewer.annotation)
-                if self.viewer.annotation and self.viewer._active_markers:
-                    layer = self.viewer.layers[self.viewer._active_markers]
-                    layer.select(self.viewer.position, self.viewer.dimensions.indices, True)
-                elif self.viewer._active_markers:
-                    layer = self.viewer.layers[self.viewer._active_markers]
-                    layer.select(self.viewer.position, self.viewer.dimensions.indices, False)
 
     def on_key_release(self, event):
         if event.key == ' ':
@@ -143,13 +147,18 @@ class QtViewer(QSplitter):
             if self.viewer.annotation:
                 if self.viewer._active_markers:
                     self.canvas.native.setCursor(self._cursors['cross'])
+                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                    annotation=self.viewer.annotation, dragging=False,
+                    shift=False, ctrl=False, pressed=False, released=False, moving=False)
                 else:
                     self.canvas.native.setCursor(self._cursors['disabled'])
         elif event.key == 'Meta':
                 if self.viewer._active_markers:
                     self.canvas.native.setCursor(self._cursors['cross'])
+                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                    annotation=self.viewer.annotation, dragging=False,
+                    shift=False, ctrl=False, pressed=False, released=False, moving=False)
                 else:
                     self.canvas.native.setCursor(self._cursors['disabled'])
-        if self.viewer._active_markers:
-            layer = self.viewer.layers[self.viewer._active_markers]
-            layer.select(self.viewer.position, self.viewer.dimensions.indices, False)
