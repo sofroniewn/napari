@@ -437,13 +437,11 @@ class Box(Layer):
                 tl = coord
                 br = box[np.mod(index[1]+2,4)]
                 if tl[0]==br[0]:
-                    print('0')
                     if index[1] == 1 or index[1] == 2:
                         tl[0] = tl[0]+1
                     else:
                         tl[0] = tl[0]-1
                 if tl[1]==br[1]:
-                    print('1')
                     if index[1] == 2 or index[1] == 3:
                         tl[1] = tl[1]+1
                     else:
