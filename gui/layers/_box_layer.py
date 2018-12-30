@@ -302,7 +302,7 @@ class Box(Layer):
         max_shape = self.viewer.dimensions.max_shape
         transform = self.viewer._canvas.scene.node_transform(self._node)
         pos = transform.map(position)
-        pos = [clip(pos[1],0,max_shape[0]), clip(pos[0],0,max_shape[1])]
+        pos = [clip(pos[1],0,max_shape[0]-1), clip(pos[0],0,max_shape[1]-1)]
         coord = copy(indices)
         coord[0] = int(pos[1])
         coord[1] = int(pos[0])
@@ -354,10 +354,24 @@ class Box(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        self.data = append(self.data, [[coord, [coord[0]+10, coord[1]+10]]], axis=0)
+        max_shape = self.viewer.dimensions.max_shape
+        tl = [coord[0]-25, coord[1]-25]
+        br = [coord[0]+25, coord[1]+25]
+        if br[0] > max_shape[0]-1:
+            br[0] = max_shape[0]-1
+            tl[0] = max_shape[0]-1-50
+        if br[1] > max_shape[1]-1:
+            br[1] = max_shape[1]-1
+            tl[1] = max_shape[1]-1-50
+        if tl[0] < 0:
+            br[0] = 50
+            tl[0] = 0
+        if tl[1] < 0:
+            br[1] = 50
+            tl[1] = 0
+
+        self.data = append(self.data, [[tl, br]], axis=0)
         self._selected_boxes = [len(self.data)-1, None]
-        #self.highlight = True
-        self._selected_boxes_stored = self._selected_boxes
         self._refresh()
 
     def _remove(self, coord):
@@ -402,8 +416,8 @@ class Box(Layer):
 
                 # clip box if goes of edge
                 max_shape = self.viewer.dimensions.max_shape
-                tl = [clip(tl[0],0,max_shape[0]-1), clip(tl[1],0,max_shape[1])]
-                br = [clip(br[0],0,max_shape[0]-1), clip(br[1],0,max_shape[1])]
+                tl = [clip(tl[0],0,max_shape[0]-1), clip(tl[1],0,max_shape[1]-1)]
+                br = [clip(br[0],0,max_shape[0]-1), clip(br[1],0,max_shape[1]-1)]
 
                 self.data[index[0]] = [tl, br]
             else:
