@@ -332,7 +332,10 @@ class Box(Layer):
         coord = self._get_coord(position, indices)
         self._set_selected_boxes(coord)
         value = self._selected_boxes
-        msg = f'{coord}'
+        coord_shift = copy(coord)
+        coord_shift[0] = coord[1]
+        coord_shift[1] = coord[0]
+        msg = f'{coord_shift}'
         if value is None:
             pass
         else:

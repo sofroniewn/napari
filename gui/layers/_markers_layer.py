@@ -384,7 +384,10 @@ class Markers(Layer):
         coord = self._get_coord(position, indices)
         self._set_selected_markers(coord)
         value = self._selected_markers
-        msg = f'{coord}'
+        coord_shift = copy(coord)
+        coord_shift[0] = coord[1]
+        coord_shift[1] = coord[0]
+        msg = f'{coord_shift}'
         if value is None:
             pass
         else:
