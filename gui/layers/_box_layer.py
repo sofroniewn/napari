@@ -438,6 +438,12 @@ class Box(Layer):
             self._refresh()
             self._selected_boxes_stored = index
 
+    def _unselect(self):
+        if self.highlight:
+            self.highlight = False
+            self._selected_boxes_stored = None
+            self._refresh()
+
     def interact(self, position, indices, annotation=True, dragging=False, shift=False, ctrl=False,
         pressed=False, released=False, moving=False):
         """Highlights object at given mouse position
@@ -450,12 +456,10 @@ class Box(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        if self.highlight and not annotation:
-            #If no longer in annotation mode and hightlighing
-            #was turned on then turn off highlighting and refresh
-            self.highlight = False
-            self._refresh()
-        elif annotation:
+        if not annotation:
+            #If not in annotation mode unselect all
+            self._unselect()
+        else:
             #If in annotation mode
             if pressed and not shift and not ctrl:
                 #Add a new box
@@ -475,6 +479,4 @@ class Box(Layer):
                 self._select(coord)
             else:
                 #Turn off highlight mode if it was on
-                if self.highlight:
-                    self.highlight = False
-                    self._refresh()
+                self._unselect()
