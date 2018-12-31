@@ -394,7 +394,7 @@ class Markers(Layer):
             msg = msg + ', %s, index %d' % (self.name, value)
         return coord, value, msg
 
-    def add(self, position, indices):
+    def _add(self, coord):
         """Adds object at given mouse position
         and set of indices.
 
@@ -405,13 +405,12 @@ class Markers(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        coord = self._get_coord(position, indices)
         if isinstance(self.size, (list, ndarray)):
             self._size = append(self.size, 10)
         self.data = append(self.data, [coord], axis=0)
         self._selected_markers = len(self.data)-1
 
-    def remove(self, position, indices):
+    def _remove(self, coord):
         """Removes object at given mouse position
         and set of indices.
 
@@ -422,7 +421,6 @@ class Markers(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        coord = self._get_coord(position, indices)
         index = self._selected_markers
         if index is None:
             pass
@@ -432,7 +430,7 @@ class Markers(Layer):
             self.data = delete(self.data, index, axis=0)
             self._selected_markers = None
 
-    def move(self, position, indices):
+    def _move(self, coord):
         """Moves object at given mouse position
         and set of indices.
 
@@ -443,10 +441,49 @@ class Markers(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        coord = self._get_coord(position, indices)
         index = self._selected_markers
         if index is None:
             pass
         else:
             self.data[index] = coord
             self._refresh()
+
+    def interact(self, position, indices, annotation=True, dragging=False, shift=False, ctrl=False,
+        pressed=False, released=False, moving=False):
+        """Highlights object at given mouse position
+        and set of indices.
+
+        Parameters
+        ----------
+        position : sequence of two int
+            Position of mouse cursor in canvas.
+        indices : sequence of int or slice
+            Indices that make up the slice.
+        """
+        if not annotation:
+            #If not in annotation mode unselect all
+            pass
+        else:
+            #If in annotation mode
+            if pressed and not shift and not ctrl:
+                pass
+            elif moving and dragging and not shift and not ctrl:
+                pass
+            elif released and not shift and not ctrl:
+                #Add a new marker
+                coord = self._get_coord(position, indices)
+                self._add(coord)
+            elif pressed and ctrl:
+                #Delete an existing marker if any
+                coord = self._get_coord(position, indices)
+                self._remove(coord)
+            elif pressed and shift:
+                pass
+            elif moving and dragging and shift:
+                #Drag an existing marker if any
+                coord = self._get_coord(position, indices)
+                self._move(coord)
+            elif shift or ctrl:
+                pass
+            else:
+                pass

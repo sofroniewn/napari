@@ -5,4 +5,4 @@ wrap.
 
 from ._image_layer import QtImageLayer
 from ._markers_layer import QtMarkersLayer
-from ._box_layer import QtBoxLayer
+from ._rectangles_layer import QtRectanglesLayer

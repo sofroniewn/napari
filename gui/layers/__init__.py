@@ -9,5 +9,5 @@ to the super constructor.
 from ._base_layer import Layer
 from ._image_layer import Image
 from ._markers_layer import Markers
-from ._box_layer import Box
+from ._rectangles_layer import Rectangles
 from ._register import add_to_viewer
