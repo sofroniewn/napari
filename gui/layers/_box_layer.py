@@ -64,6 +64,7 @@ class Box(Layer):
         self._ready_to_create_box = False
         self._creating_box = False
         self._create_tl = None
+        self._drag_start = None
         self.highlight = False
 
     @property
@@ -429,9 +430,16 @@ class Box(Layer):
         else:
             if index[1] is None:
                 box = self._expand_box(self.data[index[0]])
-                tl = [coord[0] - (box[2][0]-box[0][0])/2, coord[1] - (box[2][1]-box[0][1])/2]
-                br = [coord[0] + (box[2][0]-box[0][0])/2, coord[1] + (box[2][1]-box[0][1])/2]
 
+                #Check where dragging box from
+                if self._drag_start is None:
+                    tl = [coord[0] - (box[2][0]-box[0][0])/2, coord[1] - (box[2][1]-box[0][1])/2]
+                    br = [coord[0] + (box[2][0]-box[0][0])/2, coord[1] + (box[2][1]-box[0][1])/2]
+                else:
+                    tl = [box[0][0] - (self._drag_start[0]-coord[0]), box[0][1] - (self._drag_start[1]-coord[1])]
+                    br = [box[2][0] - (self._drag_start[0]-coord[0]), box[2][1] - (self._drag_start[1]-coord[1])]
+                    self._drag_start = coord
+                    
                 # block box move if goes of edge
                 max_shape = self.viewer.dimensions.max_shape
                 if tl[0] < 0:
@@ -544,6 +552,9 @@ class Box(Layer):
                 #Delete an existing box if any
                 coord = self._get_coord(position, indices)
                 self._remove(coord)
+            elif pressed and shift:
+                #Grab coordinate of initial dragg
+                self._drag_start = self._get_coord(position, indices)
             elif moving and dragging and shift:
                 #Drag an existing box if any
                 coord = self._get_coord(position, indices)
