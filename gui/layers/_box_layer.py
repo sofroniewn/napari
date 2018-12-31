@@ -61,6 +61,9 @@ class Box(Layer):
         self._qt = QtBoxLayer(self)
         self._selected_boxes = None
         self._selected_boxes_stored = None
+        self._ready_to_create_box = False
+        self._creating_box = False
+        self._create_tl = None
         self.highlight = False
 
     @property
@@ -346,7 +349,7 @@ class Box(Layer):
                 msg = msg + ', vertex %d' % value[1]
         return coord, value, msg
 
-    def _add(self, coord):
+    def _add(self, coord, br=None):
         """Returns coordinates, values, and a string
         for a given mouse position and set of indices.
 
@@ -358,8 +361,20 @@ class Box(Layer):
             Indices that make up the slice.
         """
         max_shape = self.viewer.dimensions.max_shape
-        tl = [coord[0]-25, coord[1]-25]
-        br = [coord[0]+25, coord[1]+25]
+
+        if br is None:
+            tl = [coord[0]-25, coord[1]-25]
+            br = [coord[0]+25, coord[1]+25]
+            index = None
+        else:
+            tl = coord
+            br = br
+            if br[0] == tl[0]:
+                br[0] = tl[0]+1
+            if br[1] == tl[1]:
+                br[1] = tl[1]+1
+            index = 2
+
         if br[0] > max_shape[0]-1:
             br[0] = max_shape[0]-1
             tl[0] = max_shape[0]-1-50
@@ -374,7 +389,7 @@ class Box(Layer):
             tl[1] = 0
 
         self.data = append(self.data, [[tl, br]], axis=0)
-        self._selected_boxes = [len(self.data)-1, None]
+        self._selected_boxes = [len(self.data)-1, index]
         self._refresh()
 
     def _remove(self, coord):
@@ -501,9 +516,30 @@ class Box(Layer):
         else:
             #If in annotation mode
             if pressed and not shift and not ctrl:
-                #Add a new box
-                coord = self._get_coord(position, indices)
-                self._add(coord)
+                #Start add a new box
+                self._ready_to_create_box = True
+                self._creating_box = False
+                self._create_tl = self._get_coord(position, indices)
+            elif moving and dragging and not shift and not ctrl:
+                #If moving and dragging check if ready to make new box
+                if self._ready_to_create_box:
+                    coord = self._get_coord(position, indices)
+                    self.highlight = True
+                    self._add(self._create_tl, coord)
+                    self._ready_to_create_box = False
+                    self._creating_box = True
+                elif self._creating_box:
+                    #If making a new box, update it's position
+                    coord = self._get_coord(position, indices)
+                    self._move(coord)
+            elif released and dragging and not shift and not ctrl:
+                if self._creating_box:
+                    self._creating_box = False
+                    self.highlight = False
+                else:
+                    coord = self._get_coord(position, indices)
+                    self._add(coord)
+                    self._ready_to_create_box = False
             elif pressed and ctrl:
                 #Delete an existing box if any
                 coord = self._get_coord(position, indices)
