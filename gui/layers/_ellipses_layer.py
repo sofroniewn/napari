@@ -284,12 +284,8 @@ class Ellipses(Layer):
 
         if self.highlight and self._selected_boxes is not None:
             vertex_color = [self.vertex_color for i in range(len(data))]
-            edge_color = [self.edge_color for i in range(len(data))]
-            face_color = [self.face_color for i in range(len(data))]
             box_face_color = [self.vertex_color for i in range(len(data))]
             if self._selected_boxes[1] is None:
-                edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                face_color[self._selected_boxes[0]] = (0, 0.6, 1)
                 vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
                 box_face_color[self._selected_boxes[0]] = (1, 1, 1)
             else:
@@ -297,7 +293,7 @@ class Ellipses(Layer):
                 box_face_color[self._selected_boxes[0]] = (0, 0.6, 1)
             self._node.set_data(
                 data, border_width=self.edge_width, box_color=vertex_color, box_face_color=box_face_color,
-                border_color=edge_color, color=face_color)
+                border_color=self.edge_color, color=self.face_color)
         else:
             self._node.set_data(
                     data, border_width=self.edge_width, box_color=self.vertex_color,
