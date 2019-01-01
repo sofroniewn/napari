@@ -284,23 +284,26 @@ class Rectangles(Layer):
             data = np.empty((0, 2))
 
         if self.highlight and self._selected_boxes is not None:
-            vertex_color = [self.vertex_color for i in range(len(data))]
+            vertex_color = [None for i in range(len(data))]
+            vertex_edge_color = [None for i in range(len(data))]
             edge_color = [self.edge_color for i in range(len(data))]
-            face_color = [self.face_color for i in range(len(data))]
             if self._selected_boxes[1] is None:
                 edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                face_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                vertex_color[self._selected_boxes[0]] = (1, 1, 1)
+                vertex_edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
             else:
+                edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
                 vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                vertex_edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
             self._node.set_data(
-                data, border_width=self.edge_width, vertex_color=vertex_color,
-                vertex_edge_color=vertex_color,
-                border_color=edge_color, color=face_color, vertex_size=self.size)
+                data, border_width=1, vertex_color=vertex_color,
+                vertex_edge_color=vertex_edge_color, vertex_symbol='square',
+                border_color=edge_color, color=self.face_color, vertex_size=7)
         else:
             self._node.set_data(
-                data, border_width=self.edge_width, vertex_color=self.vertex_color,
-                vertex_edge_color=self.vertex_color,
-                border_color=self.edge_color, color=self.face_color, vertex_size=self.size)
+                data, border_width=self.edge_width, vertex_color=None,
+                vertex_edge_color=None,
+                border_color=self.edge_color, color=self.face_color, vertex_size=0)
         self._need_visual_update = True
         self._update()
 

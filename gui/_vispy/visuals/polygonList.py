@@ -198,7 +198,7 @@ class PolygonListVisual(CompoundVisual):
         return self._vertex_edge_color
 
     @vertex_edge_color.setter
-    def vertex_color(self, vertex_edge_color):
+    def vertex_edge_color(self, vertex_edge_color):
         if isinstance(vertex_edge_color, list):
             self._vertex_edge_color = [Color(c) for c in vertex_edge_color]
         else:
