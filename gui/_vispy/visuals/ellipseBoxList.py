@@ -50,7 +50,7 @@ class EllipseBoxListVisual(CompoundVisual):
     **kwargs : dict
         Keyword arguments to pass to `CompoundVisual`.
     """
-    def __init__(self, pos=None, color='black', box_color=None,
+    def __init__(self, pos=None, color='black', box_color=None, box_face_color=None,
                  border_color=None, border_width=1, num_segments=100,
                  border_method='gl', **kwargs):
         self._pos = pos
@@ -62,6 +62,10 @@ class EllipseBoxListVisual(CompoundVisual):
             self._box_color = [Color(c) for c in box_color]
         else:
             self._box_color = Color(box_color)
+        if isinstance(box_face_color, list):
+            self._box_face_color = [Color(c) for c in box_face_color]
+        else:
+            self._box_face_color = Color(box_face_color)
         if isinstance(border_color, list):
             self._border_color = [Color(c) for c in border_color]
         else:
@@ -95,9 +99,13 @@ class EllipseBoxListVisual(CompoundVisual):
                 border_color = self.border_color[i]
             else:
                 border_color = self.border_color
+            if isinstance(self.box_face_color, list):
+                box_face_color = self.box_face_color[i]
+            else:
+                box_face_color = self.box_face_color
 
             self._subvisuals[i].set_data(
-                pos=self.pos[i], color=color, box_color=box_color,
+                pos=self.pos[i], color=color, box_color=box_color, box_face_color=box_face_color,
                 border_color=border_color, border_width=self._border_width,
                 num_segments=self._num_segments)
             self._subvisuals[i].update()
@@ -118,8 +126,12 @@ class EllipseBoxListVisual(CompoundVisual):
                 border_color = self.border_color[i]
             else:
                 border_color = self.border_color
+            if isinstance(self.box_face_color, list):
+                box_face_color = self.box_face_color[i]
+            else:
+                box_face_color = self.box_face_color
             self.add_subvisual(EllipseBoxVisual(
-                pos=self.pos[i], color=color, box_color=box_color,
+                pos=self.pos[i], color=color, box_color=box_color, box_face_color=box_face_color,
                 border_color=border_color, border_width=self._border_width,
                 num_segments=self._num_segments, border_method=self._border_method))
     @property
@@ -175,8 +187,22 @@ class EllipseBoxListVisual(CompoundVisual):
             self._box_color = Color(box_color)
         self._update()
 
+    @property
+    def box_face_color(self):
+        """ The vertex color of the polygon.
+        """
+        return self._box_face_color
+
+    @box_face_color.setter
+    def box_face_color(self, box_face_color):
+        if isinstance(box_face_color, list):
+            self._box_face_color = [Color(c) for c in box_face_color]
+        else:
+            self._box_face_color = Color(box_face_color)
+        self._update()
+
     def set_data(self, pos=None, color='black', box_color=None,
-                 border_color=None, border_width=1,
+                 border_color=None, border_width=1, box_face_color=None,
                  num_segments=100, triangulate=True):
         """Set the data used to draw this visual.
             Parameters
@@ -220,4 +246,9 @@ class EllipseBoxListVisual(CompoundVisual):
             self._box_color = [Color(c) for c in box_color]
         else:
             self._box_color = Color(box_color)
+        if isinstance(box_face_color, list):
+            self._box_face_color = [Color(c) for c in box_face_color]
+        else:
+            self._box_face_color = Color(box_face_color)
+
         self._update()

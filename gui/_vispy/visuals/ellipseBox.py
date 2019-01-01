@@ -47,7 +47,7 @@ class EllipseBoxVisual(CompoundVisual):
     **kwargs : dict
         Keyword arguments to pass to `CompoundVisual`.
     """
-    def __init__(self, pos=None, color='black', box_color=None,
+    def __init__(self, pos=None, color='black', box_color=None, box_face_color=None,
                  border_color=None, border_width=1, num_segments=100,
                  border_method='gl', **kwargs):
 
@@ -56,10 +56,7 @@ class EllipseBoxVisual(CompoundVisual):
         self._box_width = 1
         self._box_border_color = Color(box_color)
         self._box_vertex_edge_color = Color(box_color)
-        if self._box_border_color.is_blank:
-            self._box_vertex_color = Color(None)
-        else:
-            self._box_vertex_color = Color('white')
+        self._box_vertex_color = Color(box_face_color)
         self._box_vertex_size = 7
         self._box_vertex_symbol = 'square'
 
@@ -98,15 +95,13 @@ class EllipseBoxVisual(CompoundVisual):
              span_angle=self._span_angle, num_segments=self._num_segments)
 
     def set_data(self, pos=None, color='black', box_color=None,
+            box_face_color = None,
             border_color=None, border_width=1, num_segments=100):
 
         self._pos = pos
         self._box_border_color = Color(box_color)
         self._box_vertex_edge_color = Color(box_color)
-        if self._box_border_color.is_blank:
-            self._box_vertex_color = Color(None)
-        else:
-            self._box_vertex_color = Color('white')
+        self._box_vertex_color = Color(box_face_color)
         self._num_segments = num_segments
         self._color = Color(color)
         self._border_color = Color(border_color)
