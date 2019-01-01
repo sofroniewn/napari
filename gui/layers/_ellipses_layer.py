@@ -7,7 +7,7 @@ from copy import copy
 
 from ._base_layer import Layer
 from ._register import add_to_viewer
-from .._vispy.scene.visuals import EllipseBox as EllipseNode
+from .._vispy.scene.visuals import EllipseBoxList as EllipseNode
 from vispy.color import get_color_names
 
 from .qt import QtEllipsesLayer
@@ -278,27 +278,27 @@ class Ellipses(Layer):
 
             # Update the boxes node
             data = np.array(boxes) + 0.5
-            data = data[0]
         else:
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
 
-        # if self.highlight and self._selected_boxes is not None:
-        #     vertex_color = [self.vertex_color for i in range(len(data))]
-        #     edge_color = [self.edge_color for i in range(len(data))]
-        #     face_color = [self.face_color for i in range(len(data))]
-        #     if self._selected_boxes[1] is None:
-        #         edge_color[self._selected_boxes[0]] = 'red'
-        #         face_color[self._selected_boxes[0]] = 'red'
-        #     else:
-        #         vertex_color[self._selected_boxes[0]] = 'red'
-        #     self._node.set_data(
-        #         data, border_width=self.edge_width, vertex_color=self.vertex_color,
-        #         border_color=edge_color, color=face_color, vertex_size=self.size)
-        # else:
-        self._node.set_data(
-                data, border_width=self.edge_width, box_color='red',
-                border_color=self.edge_color, color=self.face_color)
+        if self.highlight and self._selected_boxes is not None:
+            vertex_color = [self.vertex_color for i in range(len(data))]
+            edge_color = [self.edge_color for i in range(len(data))]
+            face_color = [self.face_color for i in range(len(data))]
+            if self._selected_boxes[1] is None:
+                edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                face_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
+            else:
+                vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
+            self._node.set_data(
+                data, border_width=self.edge_width, box_color=vertex_color,
+                border_color=edge_color, color=face_color)
+        else:
+            self._node.set_data(
+                    data, border_width=self.edge_width, box_color=self.vertex_color,
+                    border_color=self.edge_color, color=self.face_color)
         self._need_visual_update = True
         self._update()
 

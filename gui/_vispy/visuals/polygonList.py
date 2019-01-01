@@ -52,7 +52,7 @@ class PolygonListVisual(CompoundVisual):
     """
     def __init__(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1, vertex_size=10, border_method='gl',
-                 triangulate=True, **kwargs):
+                 triangulate=True, vertex_edge_color=None, vertex_symbol='circle', **kwargs):
         self._pos = pos
         if isinstance(color, list):
             self._color = [Color(c) for c in color]
@@ -64,13 +64,17 @@ class PolygonListVisual(CompoundVisual):
             self._border_color = [Color(c) for c in border_color]
         else:
             self._border_color = Color(border_color)
+        if isinstance(vertex_edge_color, list):
+            self._vertex_edge_color = [Color(c) for c in vertex_edge_color]
+        else:
+            self._vertex_edge_color = Color(vertex_edge_color)
         if isinstance(vertex_color, list):
             self._vertex_color = [Color(c) for c in vertex_color]
         else:
             self._vertex_color = Color(vertex_color)
         self._triangulate = triangulate
         self._border_method = border_method
-        self._vertices = vertices
+        self._vertex_symbol = vertex_symbol
 
         self._update()
         CompoundVisual.__init__(self, [], **kwargs)
@@ -179,7 +183,8 @@ class PolygonListVisual(CompoundVisual):
 
     def set_data(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1,
-                 vertex_size=10, triangulate=True):
+                 vertex_size=10, triangulate=True,
+                 vertex_edge_color=None, vertex_symbol='circle'):
         """Set the data used to draw this visual.
             Parameters
             ----------
@@ -222,6 +227,10 @@ class PolygonListVisual(CompoundVisual):
             self._vertex_color = [Color(c) for c in vertex_color]
         else:
             self._vertex_color = Color(vertex_color)
+        if isinstance(vertex_edge_color, list):
+            self._vertex_edge_color = [Color(c) for c in vertex_edge_color]
+        else:
+            self._vertex_edge_color = Color(vertex_edge_color)
+        self._vertex_symbol = vertex_symbol
         self._triangulate = triangulate
-        self._vertices = vertices
         self._update()

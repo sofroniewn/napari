@@ -55,8 +55,13 @@ class EllipseBoxVisual(CompoundVisual):
         self._box_color = Color(None)
         self._box_width = 1
         self._box_border_color = Color(box_color)
-        self._box_vertex_color = Color(box_color)
-        self._box_vertex_size = 10
+        self._box_vertex_edge_color = Color(box_color)
+        if self._box_border_color.is_blank:
+            self._box_vertex_color = Color(None)
+        else:
+            self._box_vertex_color = Color('white')
+        self._box_vertex_size = 7
+        self._box_vertex_symbol = 'square'
 
         self._start_angle = 0.
         self._span_angle = 360.
@@ -85,7 +90,8 @@ class EllipseBoxVisual(CompoundVisual):
     def _update(self):
         self._box.set_data(pos=self._pos, color=self._box_color,
             vertex_color=self._box_vertex_color, border_color=self._box_border_color,
-            border_width=self._box_width, vertex_size=self._box_vertex_size)
+            border_width=self._box_width, vertex_size=self._box_vertex_size,
+            vertex_symbol=self._box_vertex_symbol, vertex_edge_color=self._box_vertex_edge_color)
 
         self._ellipse.set_data(center=self._center, color=self._color, border_color=self._border_color,
              border_width=self._border_width, radius=self._radius, start_angle=self._start_angle,
@@ -96,7 +102,11 @@ class EllipseBoxVisual(CompoundVisual):
 
         self._pos = pos
         self._box_border_color = Color(box_color)
-        self._box_vertex_color = Color(box_color)
+        self._box_vertex_edge_color = Color(box_color)
+        if self._box_border_color.is_blank:
+            self._box_vertex_color = Color(None)
+        else:
+            self._box_vertex_color = Color('white')
         self._num_segments = num_segments
         self._color = Color(color)
         self._border_color = Color(border_color)

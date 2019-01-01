@@ -288,10 +288,10 @@ class Rectangles(Layer):
             edge_color = [self.edge_color for i in range(len(data))]
             face_color = [self.face_color for i in range(len(data))]
             if self._selected_boxes[1] is None:
-                edge_color[self._selected_boxes[0]] = 'red'
-                face_color[self._selected_boxes[0]] = 'red'
+                edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                face_color[self._selected_boxes[0]] = (0, 0.6, 1)
             else:
-                vertex_color[self._selected_boxes[0]] = 'red'
+                vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
             self._node.set_data(
                 data, border_width=self.edge_width, vertex_color=self.vertex_color,
                 border_color=edge_color, color=face_color, vertex_size=self.size)

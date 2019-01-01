@@ -51,6 +51,7 @@ class PolygonVisual(CompoundVisual):
     """
     def __init__(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1, vertex_size=10,
+                 vertex_edge_color=None, vertex_symbol='circle',
                  border_method='gl', triangulate=True, **kwargs):
         self._mesh = MeshVisual()
         self._border = LineVisual(method=border_method)
@@ -62,6 +63,9 @@ class PolygonVisual(CompoundVisual):
         self._triangulate = triangulate
         self._vertex_size = vertex_size
         self._vertex_color = Color(vertex_color)
+        self._vertex_size = vertex_size
+        self._vertex_edge_color = Color(vertex_edge_color)
+        self._vertex_symbol = vertex_symbol
 
         self._update()
         CompoundVisual.__init__(self, [self._mesh, self._border, self._vertices], **kwargs)
@@ -82,6 +86,8 @@ class PolygonVisual(CompoundVisual):
         elif not self._color.is_blank:
             self.mesh.set_data(vertices=self._pos,
                                color=self._color.rgba)
+        else:
+            self.mesh.set_data(vertices=None)
 
         if not self._border_color.is_blank:
             # Close border if it is not already.
@@ -92,13 +98,29 @@ class PolygonVisual(CompoundVisual):
             self._border.set_data(pos=border_pos,
                                   color=self._border_color.rgba,
                                   width=self._border_width)
-            self._border.update()
+        else:
+            self._border.set_data(width=0)
+        self._border.update()
 
-        if not self._vertex_color.is_blank:
+        if not self._vertex_color.is_blank and not self._vertex_edge_color.is_blank:
             self._vertices.set_data(pos=self._pos, size=self._vertex_size,
                                   face_color=self._vertex_color.rgba,
-                                  edge_width=0, scaling=True)
-            self._vertices.update()
+                                  edge_width=1, scaling=True,
+                                  symbol=self._vertex_symbol,
+                                  edge_color=self._vertex_edge_color.rgba)
+        elif not self._vertex_color.is_blank:
+            self._vertices.set_data(pos=self._pos, size=self._vertex_size,
+                                  face_color=self._vertex_color.rgba,
+                                  edge_width=1, scaling=True,
+                                  symbol=self._vertex_symbol)
+        elif not self._vertex_edge_color.is_blank:
+            self._vertices.set_data(pos=self._pos, size=self._vertex_size,
+                                  edge_color=self._vertex_edge_color.rgba,
+                                  edge_width=1, scaling=True,
+                                  symbol=self._vertex_symbol)
+        else:
+            self._vertices.set_data(pos=np.empty((0, 2)))
+        self._vertices.update()
 
     @property
     def pos(self):
@@ -182,7 +204,8 @@ class PolygonVisual(CompoundVisual):
 
     def set_data(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1,
-                 vertex_size=10, triangulate=True):
+                 vertex_size=10, triangulate=True,
+                 vertex_edge_color=None, vertex_symbol='circle'):
         """Set the data used to draw this visual.
             Parameters
             ----------
@@ -217,4 +240,6 @@ class PolygonVisual(CompoundVisual):
         self._border_color = Color(border_color)
         self._vertex_color = Color(vertex_color)
         self._triangulate = triangulate
+        self._vertex_edge_color = Color(vertex_edge_color)
+        self._vertex_symbol = vertex_symbol
         self._update()
