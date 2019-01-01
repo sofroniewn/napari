@@ -197,12 +197,14 @@ class Viewer:
         from ..layers._image_layer import Image
         from ..layers._markers_layer import Markers
         from ..layers._rectangles_layer import Rectangles
+        from ..layers._ellipses_layer import Ellipses
         top_markers = []
         for i, layer in enumerate(self.layers[::-1]):
             if layer.visible and isinstance(layer, Image):
                 top_image = len(self.layers) - 1 - i
                 break
-            elif layer.visible and (isinstance(layer, Markers) or isinstance(layer, Rectangles)):
+            elif layer.visible and (isinstance(layer, Markers) or isinstance(layer, Rectangles)
+                or isinstance(layer, Ellipses)):
                 top_markers.append(len(self.layers) - 1 - i)
         else:
             top_image = None

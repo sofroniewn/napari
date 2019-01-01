@@ -35,7 +35,7 @@ class PolygonVisual(CompoundVisual):
         Border width in pixels.
         Line widths > 1px are only
         guaranteed to work when using `border_method='agg'` method.
-    size : int
+    vertex_size : int
         Vertex size in pixels.
     border_method : str
         Mode to use for drawing the border line (see `LineVisual`).
@@ -50,8 +50,8 @@ class PolygonVisual(CompoundVisual):
         Keyword arguments to pass to `CompoundVisual`.
     """
     def __init__(self, pos=None, color='black', vertex_color=None,
-                 border_color=None, border_width=1, size=10, border_method='gl',
-                 triangulate=True, **kwargs):
+                 border_color=None, border_width=1, vertex_size=10,
+                 border_method='gl', triangulate=True, **kwargs):
         self._mesh = MeshVisual()
         self._border = LineVisual(method=border_method)
         self._vertices = MarkersVisual()
@@ -60,11 +60,12 @@ class PolygonVisual(CompoundVisual):
         self._border_width = border_width
         self._border_color = Color(border_color)
         self._triangulate = triangulate
-        self._size = size
+        self._vertex_size = vertex_size
         self._vertex_color = Color(vertex_color)
 
         self._update()
         CompoundVisual.__init__(self, [self._mesh, self._border, self._vertices], **kwargs)
+
         self._mesh.set_gl_state(polygon_offset_fill=True,
                                 polygon_offset=(1, 1), cull_face=False)
         self.freeze()
@@ -91,14 +92,12 @@ class PolygonVisual(CompoundVisual):
             self._border.set_data(pos=border_pos,
                                   color=self._border_color.rgba,
                                   width=self._border_width)
-
             self._border.update()
 
         if not self._vertex_color.is_blank:
-            self._vertices.set_data(pos=self._pos, size=self._size,
+            self._vertices.set_data(pos=self._pos, size=self._vertex_size,
                                   face_color=self._vertex_color.rgba,
                                   edge_width=0, scaling=True)
-
             self._vertices.update()
 
     @property
@@ -183,7 +182,7 @@ class PolygonVisual(CompoundVisual):
 
     def set_data(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1,
-                 size=10, triangulate=True):
+                 vertex_size=10, triangulate=True):
         """Set the data used to draw this visual.
             Parameters
             ----------
@@ -199,7 +198,7 @@ class PolygonVisual(CompoundVisual):
                 Border width in pixels.
                 Line widths > 1px are only
                 guaranteed to work when using `border_method='agg'` method.
-            size : int
+            vertex_size : int
                 Vertex size in pixels.
             border_method : str
                 Mode to use for drawing the border line (see `LineVisual`).
@@ -214,7 +213,7 @@ class PolygonVisual(CompoundVisual):
         self._pos = pos
         self._color = Color(color)
         self._border_width = border_width
-        self._size = size
+        self._vertex_size = vertex_size
         self._border_color = Color(border_color)
         self._vertex_color = Color(vertex_color)
         self._triangulate = triangulate
