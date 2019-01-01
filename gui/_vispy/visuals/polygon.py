@@ -51,7 +51,7 @@ class PolygonVisual(CompoundVisual):
     """
     def __init__(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1, vertex_size=10,
-                 vertex_edge_color=None, vertex_symbol='circle',
+                 vertex_edge_color=None, vertex_symbol='o',
                  border_method='gl', triangulate=True, **kwargs):
         self._mesh = MeshVisual()
         self._border = LineVisual(method=border_method)
@@ -205,7 +205,7 @@ class PolygonVisual(CompoundVisual):
     def set_data(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1,
                  vertex_size=10, triangulate=True,
-                 vertex_edge_color=None, vertex_symbol='circle'):
+                 vertex_edge_color=None, vertex_symbol='o'):
         """Set the data used to draw this visual.
             Parameters
             ----------

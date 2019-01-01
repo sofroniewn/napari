@@ -293,11 +293,13 @@ class Rectangles(Layer):
             else:
                 vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
             self._node.set_data(
-                data, border_width=self.edge_width, vertex_color=self.vertex_color,
+                data, border_width=self.edge_width, vertex_color=vertex_color,
+                vertex_edge_color=vertex_color,
                 border_color=edge_color, color=face_color, vertex_size=self.size)
         else:
             self._node.set_data(
                 data, border_width=self.edge_width, vertex_color=self.vertex_color,
+                vertex_edge_color=self.vertex_color,
                 border_color=self.edge_color, color=self.face_color, vertex_size=self.size)
         self._need_visual_update = True
         self._update()

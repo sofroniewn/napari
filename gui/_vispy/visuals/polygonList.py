@@ -52,7 +52,7 @@ class PolygonListVisual(CompoundVisual):
     """
     def __init__(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1, vertex_size=10, border_method='gl',
-                 triangulate=True, vertex_edge_color=None, vertex_symbol='circle', **kwargs):
+                 triangulate=True, vertex_edge_color=None, vertex_symbol='o', **kwargs):
         self._pos = pos
         if isinstance(color, list):
             self._color = [Color(c) for c in color]
@@ -100,10 +100,15 @@ class PolygonListVisual(CompoundVisual):
                 border_color = self.border_color[i]
             else:
                 border_color = self.border_color
+            if isinstance(self.vertex_edge_color, list):
+                vertex_edge_color = self.vertex_edge_color[i]
+            else:
+                vertex_edge_color = self.vertex_edge_color
 
             self._subvisuals[i].set_data(
                 pos=self.pos[i], color=color, vertex_color=vertex_color,
                 border_color=border_color, border_width=self._border_width,
+                vertex_edge_color=vertex_edge_color, vertex_symbol=self._vertex_symbol,
                 vertex_size=self._vertex_size, triangulate=self._triangulate)
             self._subvisuals[i].update()
 
@@ -119,6 +124,10 @@ class PolygonListVisual(CompoundVisual):
                 vertex_color = self.vertex_color[i]
             else:
                 vertex_color = self.vertex_color
+            if isinstance(self.vertex_edge_color, list):
+                vertex_edge_color = self.vertex_edge_color[i]
+            else:
+                vertex_edge_color = self.vertex_edge_color
             if isinstance(self.border_color, list):
                 border_color = self.border_color[i]
             else:
@@ -127,6 +136,7 @@ class PolygonListVisual(CompoundVisual):
                 pos=self.pos[i], color=color, vertex_color=vertex_color,
                 border_color=border_color, border_width=self._border_width,
                 vertex_size=self._vertex_size, border_method=self._border_method,
+                vertex_edge_color=vertex_edge_color, vertex_symbol=self._vertex_symbol,
                 triangulate=self._triangulate))
     @property
     def pos(self):
@@ -181,10 +191,24 @@ class PolygonListVisual(CompoundVisual):
             self._vertex_color = Color(vertex_color)
         self._update()
 
+    @property
+    def vertex_edge_color(self):
+        """ The vertex color of the polygon.
+        """
+        return self._vertex_edge_color
+
+    @vertex_edge_color.setter
+    def vertex_color(self, vertex_edge_color):
+        if isinstance(vertex_edge_color, list):
+            self._vertex_edge_color = [Color(c) for c in vertex_edge_color]
+        else:
+            self._vertex_edge_color = Color(vertex_edge_color)
+        self._update()
+
     def set_data(self, pos=None, color='black', vertex_color=None,
                  border_color=None, border_width=1,
                  vertex_size=10, triangulate=True,
-                 vertex_edge_color=None, vertex_symbol='circle'):
+                 vertex_edge_color=None, vertex_symbol='o'):
         """Set the data used to draw this visual.
             Parameters
             ----------
