@@ -7,3 +7,4 @@ from ._image_layer import QtImageLayer
 from ._markers_layer import QtMarkersLayer
 from ._rectangles_layer import QtRectanglesLayer
 from ._ellipses_layer import QtEllipsesLayer
+from ._lines_layer import QtLinesLayer

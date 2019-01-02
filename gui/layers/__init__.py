@@ -11,4 +11,5 @@ from ._image_layer import Image
 from ._markers_layer import Markers
 from ._rectangles_layer import Rectangles
 from ._ellipses_layer import Ellipses
+from ._lines_layer import Lines
 from ._register import add_to_viewer
