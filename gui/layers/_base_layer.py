@@ -162,7 +162,7 @@ class Layer(VisualWrapper, ABC):
         """
         return None, None, ''
 
-    def interact(self, position, indices, annotation=True, dragging=False, shift=False, ctrl=False,
+    def interact(self, position, indices, mode=True, dragging=False, shift=False, ctrl=False,
         pressed=False, released=False, moving=False):
         """Highlights object at given mouse position
         and set of indices.

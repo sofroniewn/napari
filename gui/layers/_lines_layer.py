@@ -513,7 +513,7 @@ class Lines(Layer):
             self._selected_boxes_stored = None
             self._refresh()
 
-    def interact(self, position, indices, annotation=True, dragging=False, shift=False, ctrl=False,
+    def interact(self, position, indices, mode=True, dragging=False, shift=False, ctrl=False,
         pressed=False, released=False, moving=False):
         """Highlights object at given mouse position
         and set of indices.
@@ -525,7 +525,7 @@ class Lines(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        if not annotation:
+        if not mode:
             #If not in annotation mode unselect all
             self._unselect()
         else:

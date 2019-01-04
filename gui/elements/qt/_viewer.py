@@ -61,7 +61,7 @@ class QtViewer(QSplitter):
                 self.canvas.native.setCursor(self._cursors['cross'])
             else:
                 self.canvas.native.setCursor(self._cursors['forbidden'])
-        elif self.viewer.mode == 'select':
+        elif self.viewer.mode == 'edit':
             self.view.interactive = False
             if self.viewer.active_markers:
                 self.canvas.native.setCursor(self._cursors['pointing'])
@@ -123,7 +123,7 @@ class QtViewer(QSplitter):
                 else:
                     self.viewer._mode_history = None
             elif event.key == 'Meta':
-                if self.viewer.mode == 'add' and self.viewer.active_markers:
+                if self.viewer.mode == 'edit' and self.viewer.active_markers:
                     self.canvas.native.setCursor(self._cursors['remove'])
                     layer = self.viewer.layers[self.viewer.active_markers]
                     layer.interact(self.viewer.position, self.viewer.dimensions.indices,
@@ -131,17 +131,20 @@ class QtViewer(QSplitter):
                     shift=False, ctrl=True, pressed=False, released=False, moving=False)
             elif event.key == 'a':
                 self.viewer._set_mode('add')
-            elif event.key == 'v':
-                self.viewer._set_mode('select')
+                print(self.viewer.mode)
+            elif event.key == 'e':
+                self.viewer._set_mode('edit')
+                print(self.viewer.mode)
             elif event.key == 'n':
                 self.viewer._set_mode(None)
+                print(self.viewer.mode)
 
     def on_key_release(self, event):
         if event.key == ' ':
             if self.viewer._mode_history is not None:
                 self.viewer.mode = self.viewer._mode_history
         elif event.key == 'Meta':
-                if self.viewer.mode == 'add' and self.viewer.active_markers:
+                if self.viewer.mode == 'edit' and self.viewer.active_markers:
                     self.canvas.native.setCursor(self._cursors['cross'])
                     layer = self.viewer.layers[self.viewer.active_markers]
                     layer.interact(self.viewer.position, self.viewer.dimensions.indices,

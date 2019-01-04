@@ -59,12 +59,13 @@ class Rectangles(Layer):
 
         self.name = 'rectangles'
         self._qt = QtRectanglesLayer(self)
-        self._selected_boxes = None
-        self._selected_boxes_stored = None
+        self._selected_shapes = None
+        self._selected_shapes_stored = None
         self._ready_to_create_box = False
         self._creating_box = False
         self._create_tl = None
         self._drag_start = None
+        self._fixed = None
         self.highlight = False
 
     @property
@@ -208,13 +209,13 @@ class Rectangles(Layer):
         else:
             return [], []
 
-    def _set_selected_boxes(self, indices):
-        """Determines selected boxes selected given indices.
+    def _get_selected_shapes(self, indices):
+        """Determines if any shapes at given indices.
 
         Parameters
         ----------
         indices : sequence of int
-            Indices to check if box at.
+            Indices to check if shape at.
         """
         in_slice_boxes, matches = self._slice_boxes(indices)
 
@@ -240,24 +241,18 @@ class Rectangles(Layer):
             if len(indices[0]) > 0:
                 matches = matches[indices[0][-1]]
                 vertex = indices[1][-1]
+                return [matches, vertex]
             else:
                 # If no matching vertex check if index inside bounding box
                 in_slice_matches = np.all(np.array([np.all(offsets[:,0]>=0, axis=1), np.all(offsets[:,2]<=0, axis=1)]), axis=0)
                 indices = in_slice_matches.nonzero()
                 if len(indices[0]) > 0:
                     matches = matches[indices[0][-1]]
-                    vertex = None
+                    return [matches, None]
                 else:
-                    matches = None
-                    vertex = None
+                    return None
         else:
-            matches = None
-            vertex = None
-
-        if matches is None:
-            self._selected_boxes = None
-        else:
-            self._selected_boxes = [matches, vertex]
+            return None
 
     def _set_view_slice(self, indices):
         """Sets the view given the indices to slice with.
@@ -283,18 +278,18 @@ class Rectangles(Layer):
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
 
-        if self.highlight and self._selected_boxes is not None:
+        if self.highlight and self._selected_shapes is not None:
             vertex_color = [None for i in range(len(data))]
             vertex_edge_color = [None for i in range(len(data))]
             edge_color = [self.edge_color for i in range(len(data))]
-            if self._selected_boxes[1] is None:
-                edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                vertex_color[self._selected_boxes[0]] = (1, 1, 1)
-                vertex_edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
+            if self._selected_shapes[1] is None:
+                edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
+                vertex_color[self._selected_shapes[0]] = (1, 1, 1)
+                vertex_edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
             else:
-                edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                vertex_edge_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
+                vertex_color[self._selected_shapes[0]] = (0, 0.6, 1)
+                vertex_edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
             self._node.set_data(
                 data, border_width=1, vertex_color=vertex_color,
                 vertex_edge_color=vertex_edge_color, vertex_symbol='square',
@@ -339,8 +334,7 @@ class Rectangles(Layer):
             a status update.
         """
         coord = self._get_coord(position, indices)
-        self._set_selected_boxes(coord)
-        value = self._selected_boxes
+        value = self._get_selected_shapes(coord)
         coord_shift = copy(coord)
         coord_shift[0] = coord[1]
         coord_shift[1] = coord[0]
@@ -395,7 +389,7 @@ class Rectangles(Layer):
             tl[1] = 0
 
         self.data = append(self.data, [[tl, br]], axis=0)
-        self._selected_boxes = [len(self.data)-1, index]
+        self._selected_shapes = [len(self.data)-1, index]
         self._refresh()
 
     def _remove(self, coord):
@@ -409,14 +403,13 @@ class Rectangles(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        index = self._selected_boxes
+        index = self._selected_shapes
         if index is None:
             pass
         else:
-            self._selected_boxes = None
             self.data = delete(self.data, index[0], axis=0)
+            self._selected_shapes = self._get_selected_shapes(coord)
             self._refresh()
-            self._select(coord)
 
     def _move(self, coord):
         """Moves object at given mouse position
@@ -429,7 +422,7 @@ class Rectangles(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        index = self._selected_boxes
+        index = self._selected_shapes
         if index is None:
             pass
         else:
@@ -462,8 +455,10 @@ class Rectangles(Layer):
                 self.data[index[0]] = [tl, br]
             else:
                 box = self._expand_box(self.data[index[0]])
+                if self._fixed is None:
+                    self._fixed = box[np.mod(index[1]+2,4)]
                 tl = coord
-                br = box[np.mod(index[1]+2,4)]
+                br = self._fixed
                 if tl[0]==br[0]:
                     if index[1] == 1 or index[1] == 2:
                         tl[0] = tl[0]+1
@@ -478,7 +473,7 @@ class Rectangles(Layer):
                 self.data[index[0]] = [tl, br]
 
             self.highlight = True
-            self._selected_boxes_stored = index
+            self._selected_shapes_stored = index
             self._refresh()
 
     def _select(self, coord):
@@ -492,26 +487,23 @@ class Rectangles(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        self._set_selected_boxes(coord)
-        index = self._selected_boxes
-        if index == self._selected_boxes_stored:
-            pass
-        elif index is None:
+        if self._selected_shapes == self._selected_shapes_stored:
+            return
+
+        if self._selected_shapes is None:
             self.highlight = False
-            self._refresh()
-            self._selected_boxes_stored = index
         else:
             self.highlight = True
-            self._refresh()
-            self._selected_boxes_stored = index
+        self._selected_shapes_stored = self._selected_shapes
+        self._refresh()
 
     def _unselect(self):
         if self.highlight:
             self.highlight = False
-            self._selected_boxes_stored = None
+            self._selected_shapes_stored = None
             self._refresh()
 
-    def interact(self, position, indices, annotation=True, dragging=False, shift=False, ctrl=False,
+    def interact(self, position, indices, mode=True, dragging=False, shift=False, ctrl=False,
         pressed=False, released=False, moving=False):
         """Highlights object at given mouse position
         and set of indices.
@@ -523,51 +515,54 @@ class Rectangles(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        if not annotation:
-            #If not in annotation mode unselect all
+        if mode is None:
+            #If not in edit or addition mode unselect all
             self._unselect()
-        else:
-            #If in annotation mode
-            if pressed and not shift and not ctrl:
+        elif mode == 'edit':
+            #If in edit mode
+            coord = self._get_coord(position, indices)
+            if pressed and not ctrl:
+                #Set coordinate of initial drag
+                self._selected_shapes = self._get_selected_shapes(coord)
+                self._drag_start = coord
+            elif pressed and ctrl:
+                #Delete an existing box if any on control press
+                self._selected_shapes = self._get_selected_shapes(coord)
+                self._remove(coord)
+            elif moving and dragging:
+                #Drag an existing box if any
+                self._move(coord)
+            else:
+                #Highlight boxes if any an over
+                self._selected_shapes = self._get_selected_shapes(coord)
+                self._select(coord)
+                self._fixed = None
+        elif mode == 'add':
+            #If in addition mode
+            coord = self._get_coord(position, indices)
+            if pressed:
                 #Start add a new box
                 self._ready_to_create_box = True
                 self._creating_box = False
-                self._create_tl = self._get_coord(position, indices)
-            elif moving and dragging and not shift and not ctrl:
+                self._create_tl = coord
+            elif moving and dragging:
                 #If moving and dragging check if ready to make new box
                 if self._ready_to_create_box:
-                    coord = self._get_coord(position, indices)
                     self.highlight = True
                     self._add(self._create_tl, coord)
                     self._ready_to_create_box = False
                     self._creating_box = True
                 elif self._creating_box:
                     #If making a new box, update it's position
-                    coord = self._get_coord(position, indices)
                     self._move(coord)
-            elif released and dragging and not shift and not ctrl:
+            elif released and dragging:
+                #One release add new box
                 if self._creating_box:
                     self._creating_box = False
                     self._unselect()
+                    self._fixed = None
                 else:
-                    coord = self._get_coord(position, indices)
                     self._add(coord)
                     self._ready_to_create_box = False
-            elif pressed and ctrl:
-                #Delete an existing box if any
-                coord = self._get_coord(position, indices)
-                self._remove(coord)
-            elif pressed and shift:
-                #Grab coordinate of initial dragg
-                self._drag_start = self._get_coord(position, indices)
-            elif moving and dragging and shift:
-                #Drag an existing box if any
-                coord = self._get_coord(position, indices)
-                self._move(coord)
-            elif shift or ctrl:
-                #Highlight boxes if any
-                coord = self._get_coord(position, indices)
-                self._select(coord)
-            else:
-                #Turn off highlight mode if it was on
-                self._unselect()
+        else:
+            pass
