@@ -5,7 +5,7 @@ from vispy.scene import SceneCanvas, PanZoomCamera
 
 from os.path import join
 from ...icons import icons_dir
-path_cursor = join(icons_dir, 'cursor_disabled.png')
+path_remove = join(icons_dir, 'cursor_remove.png')
 
 class QtViewer(QSplitter):
 
@@ -14,7 +14,8 @@ class QtViewer(QSplitter):
 
         self.viewer = viewer
 
-        self.viewer.events.annotation.connect(self.set_annotation)
+        self.viewer.events.mode.connect(self.set_cursor)
+        self.viewer.events.active_markers.connect(self.set_cursor)
 
         self.canvas = SceneCanvas(keys=None, vsync=True)
         self.canvas.native.setMinimumSize(QSize(100, 100))
@@ -46,20 +47,26 @@ class QtViewer(QSplitter):
         viewer.dimensions._qt.setFixedHeight(0)
 
         self._cursors = {
-            'disabled' : QCursor(QPixmap(path_cursor).scaled(20,20)),
+            'remove' : QCursor(QPixmap(path_remove).scaled(20,20)),
             'cross' : Qt.CrossCursor,
             'forbidden' : Qt.ForbiddenCursor,
             'pointing' : Qt.PointingHandCursor,
             'standard' : QCursor()
         }
 
-    def set_annotation(self, event):
-        if self.viewer.annotation:
+    def set_cursor(self, event):
+        if self.viewer.mode == 'add':
             self.view.interactive = False
-            if self.viewer._active_markers:
+            if self.viewer.active_markers:
                 self.canvas.native.setCursor(self._cursors['cross'])
             else:
-                self.canvas.native.setCursor(self._cursors['disabled'])
+                self.canvas.native.setCursor(self._cursors['forbidden'])
+        elif self.viewer.mode == 'select':
+            self.view.interactive = False
+            if self.viewer.active_markers:
+                self.canvas.native.setCursor(self._cursors['pointing'])
+            else:
+                self.canvas.native.setCursor(self._cursors['forbidden'])
         else:
             self.view.interactive = True
             self.canvas.native.setCursor(self._cursors['standard'])
@@ -71,12 +78,12 @@ class QtViewer(QSplitter):
             return
         self.viewer.position = event.pos
 
-        if self.viewer.annotation and self.viewer._active_markers:
-             layer = self.viewer.layers[self.viewer._active_markers]
+        if self.viewer.mode is not None and self.viewer.active_markers:
+             layer = self.viewer.layers[self.viewer.active_markers]
              shift = 'Shift' in event.modifiers
              ctrl = 'Meta' in event.modifiers
              layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-             annotation=self.viewer.annotation, dragging=event.is_dragging,
+             mode=self.viewer.mode, dragging=event.is_dragging,
              shift=shift, ctrl=ctrl, pressed=False, released=False, moving=True)
 
         self.viewer._update_status()
@@ -84,24 +91,24 @@ class QtViewer(QSplitter):
     def on_mouse_press(self, event):
         """Called whenever mouse pressed in canvas.
         """
-        if self.viewer.annotation and self.viewer._active_markers:
-            layer = self.viewer.layers[self.viewer._active_markers]
+        if self.viewer.mode is not None and self.viewer.active_markers:
+            layer = self.viewer.layers[self.viewer.active_markers]
             shift = 'Shift' in event.modifiers
             ctrl = 'Meta' in event.modifiers
             layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-            annotation=self.viewer.annotation, dragging=event.is_dragging,
+            mode=self.viewer.mode, dragging=event.is_dragging,
             shift=shift, ctrl=ctrl, pressed=True, released=False, moving=False)
             self.viewer._update_status()
 
     def on_mouse_release(self, event):
         """Called whenever mouse released in canvas.
         """
-        if self.viewer.annotation and self.viewer._active_markers:
-            layer = self.viewer.layers[self.viewer._active_markers]
+        if self.viewer.mode is not None and self.viewer.active_markers:
+            layer = self.viewer.layers[self.viewer.active_markers]
             shift = 'Shift' in event.modifiers
             ctrl = 'Meta' in event.modifiers
             layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-            annotation=self.viewer.annotation, dragging=event.is_dragging,
+            mode=self.viewer.mode, dragging=event.is_dragging,
             shift=shift, ctrl=ctrl, pressed=False, released=True, moving=False)
             self.viewer._update_status()
 
@@ -110,55 +117,33 @@ class QtViewer(QSplitter):
             return
         else:
             if event.key == ' ':
-                if self.viewer.annotation:
-                    self.viewer._annotation_history = True
-                    self.view.interactive = True
-                    self.viewer.annotation = False
-                    self.canvas.native.setCursor(self._cursors['standard'])
+                if self.viewer.mode is not None:
+                    self.viewer._mode_history = self.viewer.mode
+                    self.viewer.mode = None
                 else:
-                    self.viewer._annotation_history = False
-            elif event.key == 'Shift':
-                if self.viewer.annotation and self.viewer._active_markers:
-                    self.canvas.native.setCursor(self._cursors['pointing'])
-                    layer = self.viewer.layers[self.viewer._active_markers]
-                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-                    annotation=self.viewer.annotation, dragging=False,
-                    shift=True, ctrl=False, pressed=False, released=False, moving=False)
+                    self.viewer._mode_history = None
             elif event.key == 'Meta':
-                if self.viewer.annotation and self.viewer._active_markers:
-                    self.canvas.native.setCursor(self._cursors['forbidden'])
-                    layer = self.viewer.layers[self.viewer._active_markers]
+                if self.viewer.mode == 'add' and self.viewer.active_markers:
+                    self.canvas.native.setCursor(self._cursors['remove'])
+                    layer = self.viewer.layers[self.viewer.active_markers]
                     layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-                    annotation=self.viewer.annotation, dragging=False,
+                    mode=self.viewer.mode, dragging=False,
                     shift=False, ctrl=True, pressed=False, released=False, moving=False)
             elif event.key == 'a':
-                self.viewer._set_annotation(not self.viewer.annotation)
+                self.viewer._set_mode('add')
+            elif event.key == 'v':
+                self.viewer._set_mode('select')
+            elif event.key == 'n':
+                self.viewer._set_mode(None)
 
     def on_key_release(self, event):
         if event.key == ' ':
-            if self.viewer._annotation_history:
-                self.view.interactive = False
-                self.viewer.annotation = True
-                if self.viewer._active_markers:
-                    self.canvas.native.setCursor(self._cursors['cross'])
-                else:
-                    self.canvas.native.setCursor(self._cursors['disabled'])
-        elif event.key == 'Shift':
-            if self.viewer.annotation:
-                if self.viewer._active_markers:
-                    self.canvas.native.setCursor(self._cursors['cross'])
-                    layer = self.viewer.layers[self.viewer._active_markers]
-                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-                    annotation=self.viewer.annotation, dragging=False,
-                    shift=False, ctrl=False, pressed=False, released=False, moving=False)
-                else:
-                    self.canvas.native.setCursor(self._cursors['disabled'])
+            if self.viewer._mode_history is not None:
+                self.viewer.mode = self.viewer._mode_history
         elif event.key == 'Meta':
-                if self.viewer._active_markers:
+                if self.viewer.mode == 'add' and self.viewer.active_markers:
                     self.canvas.native.setCursor(self._cursors['cross'])
-                    layer = self.viewer.layers[self.viewer._active_markers]
+                    layer = self.viewer.layers[self.viewer.active_markers]
                     layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-                    annotation=self.viewer.annotation, dragging=False,
+                    mode=self.viewer.mode, dragging=False,
                     shift=False, ctrl=False, pressed=False, released=False, moving=False)
-                else:
-                    self.canvas.native.setCursor(self._cursors['disabled'])
