@@ -70,6 +70,12 @@ class QtViewer(QSplitter):
         else:
             self.view.interactive = True
             self.canvas.native.setCursor(self._cursors['standard'])
+        if self.viewer.active_markers:
+            layer = self.viewer.layers[self.viewer.active_markers]
+            layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+            mode=self.viewer.mode, dragging=False,
+            shift=False, ctrl=False, pressed=False, released=False, moving=False)
+
 
     def on_mouse_move(self, event):
         """Called whenever mouse moves over canvas.

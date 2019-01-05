@@ -613,5 +613,7 @@ class Rectangles(Layer):
                 self._is_moving=False
             elif released:
                 self._is_moving=False
+            else:
+                self._unselect()
         else:
             pass
