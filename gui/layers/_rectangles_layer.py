@@ -7,10 +7,10 @@ from copy import copy
 
 from ._base_layer import Layer
 from ._register import add_to_viewer
-from .._vispy.scene.visuals import PolygonList as PolygonNode
+from .._vispy.scene.visuals import PolygonList as ShapeNode
 from vispy.color import get_color_names
 
-from .qt import QtRectanglesLayer
+from .qt import QtRectanglesLayer as QtShapeLayer
 
 @add_to_viewer
 class Rectangles(Layer):
@@ -39,7 +39,7 @@ class Rectangles(Layer):
 
     def __init__(self, coords, edge_width=1, size=10, vertex_color = 'black', edge_color='black', face_color='white'):
 
-        visual = PolygonNode(border_method='agg')
+        visual = ShapeNode(border_method='agg')
         super().__init__(visual)
 
         # Save the bbox coordinates
@@ -58,7 +58,7 @@ class Rectangles(Layer):
         self._need_visual_update = False
 
         self.name = 'rectangles'
-        self._qt = QtRectanglesLayer(self)
+        self._qt = QtShapeLayer(self)
         self._selected_shapes = None
         self._selected_shapes_stored = None
         self._ready_to_create_box = False
@@ -197,7 +197,6 @@ class Rectangles(Layer):
         br = np.array([max(box[0][0],box[1][0]), max(box[0][1],box[1][1])])
         bl = np.array([min(box[0][0],box[1][0]), max(box[0][1],box[1][1])])
         return [tl, (tl+tr)/2, tr, (tr+br)/2, br, (br+bl)/2, bl, (bl+tl)/2]
-
 
     def _slice_boxes(self, indices):
         """Determines the slice of boxes given the indices.
@@ -355,10 +354,10 @@ class Rectangles(Layer):
             pass
         else:
             msg = msg + ', %s, index %d' % (self.name, value[0])
-            if value[1] is None:
-                pass
-            else:
-                msg = msg + ', vertex %d' % value[1]
+            # if value[1] is None:
+            #     pass
+            # else:
+            #     msg = msg + ', vertex %d' % value[1]
         return coord, value, msg
 
     def _add(self, coord, br=None):

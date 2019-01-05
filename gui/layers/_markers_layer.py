@@ -460,30 +460,23 @@ class Markers(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        if not mode:
-            #If not in annotation mode unselect all
+        if mode is None:
             pass
-        else:
-            #If in annotation mode
-            if pressed and not shift and not ctrl:
-                pass
-            elif moving and dragging and not shift and not ctrl:
-                pass
-            elif released and not shift and not ctrl:
-                #Add a new marker
-                coord = self._get_coord(position, indices)
-                self._add(coord)
-            elif pressed and ctrl:
-                #Delete an existing marker if any
+        elif mode == 'edit':
+            #If in edit mode
+            if pressed and ctrl:
+                #Delete an existing box if any on control press
                 coord = self._get_coord(position, indices)
                 self._remove(coord)
-            elif pressed and shift:
-                pass
-            elif moving and dragging and shift:
-                #Drag an existing marker if any
+            elif moving and dragging:
+                #Drag an existing box if any
                 coord = self._get_coord(position, indices)
                 self._move(coord)
-            elif shift or ctrl:
-                pass
-            else:
-                pass
+        elif mode == 'add':
+            #If in addition mode
+            if pressed:
+                #Add a new box
+                coord = self._get_coord(position, indices)
+                self._add(coord)
+        else:
+            pass

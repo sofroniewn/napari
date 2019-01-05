@@ -81,8 +81,8 @@ class EllipseBoxVisual(CompoundVisual):
             self._center = None
             self._radius = (None, None)
         else:
-            self._center = [(self._pos[0][0]+self._pos[2][0])/2, (self._pos[0][1]+self._pos[2][1])/2]
-            self._radius = ([(self._pos[2][0]-self._pos[0][0])/2, (self._pos[2][1]-self._pos[0][1])/2])
+            self._center = [(self._pos[0][0]+self._pos[4][0])/2, (self._pos[0][1]+self._pos[4][1])/2]
+            self._radius = ([(self._pos[4][0]-self._pos[0][0])/2, (self._pos[4][1]-self._pos[0][1])/2])
 
     def _update(self):
         self._box.set_data(pos=self._pos, color=self._box_color,

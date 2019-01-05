@@ -143,13 +143,10 @@ class QtViewer(QSplitter):
                     shift=True, ctrl=False, pressed=False, released=False, moving=False)
             elif event.key == 'a':
                 self.viewer._set_mode('add')
-                print(self.viewer.mode)
             elif event.key == 'e':
                 self.viewer._set_mode('edit')
-                print(self.viewer.mode)
             elif event.key == 'n':
                 self.viewer._set_mode(None)
-                print(self.viewer.mode)
 
     def on_key_release(self, event):
         if event.key == ' ':
@@ -157,7 +154,7 @@ class QtViewer(QSplitter):
                 self.viewer.mode = self.viewer._mode_history
         elif event.key == 'Meta':
             if self.viewer.mode == 'edit' and self.viewer.active_markers:
-                self.canvas.native.setCursor(self._cursors['cross'])
+                self.canvas.native.setCursor(self._cursors['pointing'])
                 layer = self.viewer.layers[self.viewer.active_markers]
                 layer.interact(self.viewer.position, self.viewer.dimensions.indices,
                 mode=self.viewer.mode, dragging=False,

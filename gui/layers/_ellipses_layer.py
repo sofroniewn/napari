@@ -7,10 +7,10 @@ from copy import copy
 
 from ._base_layer import Layer
 from ._register import add_to_viewer
-from .._vispy.scene.visuals import EllipseBoxList as EllipseNode
+from .._vispy.scene.visuals import EllipseBoxList as ShapeNode
 from vispy.color import get_color_names
 
-from .qt import QtEllipsesLayer
+from .qt import QtEllipsesLayer as QtShapeLayer
 
 @add_to_viewer
 class Ellipses(Layer):
@@ -39,7 +39,7 @@ class Ellipses(Layer):
 
     def __init__(self, coords, edge_width=1, size=10, vertex_color = 'black', edge_color='black', face_color='white'):
 
-        visual = EllipseNode(border_method='agg')
+        visual = ShapeNode(border_method='agg')
         super().__init__(visual)
 
         # Save the bbox coordinates
@@ -58,14 +58,19 @@ class Ellipses(Layer):
         self._need_visual_update = False
 
         self.name = 'ellipses'
-        self._qt = QtEllipsesLayer(self)
-        self._selected_boxes = None
-        self._selected_boxes_stored = None
+        self._qt = QtShapeLayer(self)
+        self._selected_shapes = None
+        self._selected_shapes_stored = None
         self._ready_to_create_box = False
         self._creating_box = False
         self._create_tl = None
         self._drag_start = None
+        self._fixed = None
+        self._fixed_aspect = False
+        self._aspect_ratio = 1
         self.highlight = False
+        self._is_moving=False
+        self._fixed_index = 0
 
     @property
     def coords(self) -> np.ndarray:
@@ -186,6 +191,13 @@ class Ellipses(Layer):
         bl = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
         return [tl, tr, br, bl]
 
+    def _expand_bounding_box(self, box):
+        tl = np.array([min(box[0][0],box[1][0]), min(box[0][1],box[1][1])])
+        tr = np.array([max(box[0][0],box[1][0]), min(box[0][1],box[1][1])])
+        br = np.array([max(box[0][0],box[1][0]), max(box[0][1],box[1][1])])
+        bl = np.array([min(box[0][0],box[1][0]), max(box[0][1],box[1][1])])
+        return [tl, (tl+tr)/2, tr, (tr+br)/2, br, (br+bl)/2, bl, (bl+tl)/2]
+
     def _slice_boxes(self, indices):
         """Determines the slice of boxes given the indices.
 
@@ -208,13 +220,13 @@ class Ellipses(Layer):
         else:
             return [], []
 
-    def _set_selected_boxes(self, indices):
-        """Determines selected boxes selected given indices.
+    def _get_selected_shapes(self, indices):
+        """Determines if any shapes at given indices.
 
         Parameters
         ----------
         indices : sequence of int
-            Indices to check if box at.
+            Indices to check if shape at.
         """
         in_slice_boxes, matches = self._slice_boxes(indices)
 
@@ -223,41 +235,35 @@ class Ellipses(Layer):
             matches = matches.nonzero()[0]
             boxes = []
             for box in in_slice_boxes:
-                boxes.append(self._expand_box(box))
+                boxes.append(self._expand_bounding_box(box))
             in_slice_boxes = np.array(boxes)
 
-            offsets = np.broadcast_to(indices[:2], (len(in_slice_boxes), 4, 2)) - in_slice_boxes
+            offsets = np.broadcast_to(indices[:2], (len(in_slice_boxes), 8, 2)) - in_slice_boxes
             distances = abs(offsets)
 
             # Get the vertex sizes
             sizes = self.size
 
             # Check if any matching vertices
-            in_slice_matches = np.less_equal(distances, np.broadcast_to(sizes/2, (2, 4, len(in_slice_boxes))).T)
+            in_slice_matches = np.less_equal(distances, np.broadcast_to(sizes/2, (2, 8, len(in_slice_boxes))).T)
             in_slice_matches = np.all(in_slice_matches, axis=2)
             indices = in_slice_matches.nonzero()
 
             if len(indices[0]) > 0:
                 matches = matches[indices[0][-1]]
                 vertex = indices[1][-1]
+                return [matches, vertex]
             else:
                 # If no matching vertex check if index inside bounding box
-                in_slice_matches = np.all(np.array([np.all(offsets[:,0]>=0, axis=1), np.all(offsets[:,2]<=0, axis=1)]), axis=0)
+                in_slice_matches = np.all(np.array([np.all(offsets[:,0]>=0, axis=1), np.all(offsets[:,4]<=0, axis=1)]), axis=0)
                 indices = in_slice_matches.nonzero()
                 if len(indices[0]) > 0:
                     matches = matches[indices[0][-1]]
-                    vertex = None
+                    return [matches, None]
                 else:
-                    matches = None
-                    vertex = None
+                    return None
         else:
-            matches = None
-            vertex = None
-
-        if matches is None:
-            self._selected_boxes = None
-        else:
-            self._selected_boxes = [matches, vertex]
+            return None
 
     def _set_view_slice(self, indices):
         """Sets the view given the indices to slice with.
@@ -274,23 +280,24 @@ class Ellipses(Layer):
         if len(in_slice_boxes) > 0:
             boxes = []
             for box in in_slice_boxes:
-                boxes.append(self._expand_box(box))
+                boxes.append(self._expand_bounding_box(box))
 
             # Update the boxes node
             data = np.array(boxes) + 0.5
+            #data = data[0]
         else:
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
 
-        if self.highlight and self._selected_boxes is not None:
+        if self.highlight and self._selected_shapes is not None:
             vertex_color = [self.vertex_color for i in range(len(data))]
             box_face_color = [self.vertex_color for i in range(len(data))]
-            if self._selected_boxes[1] is None:
-                vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                box_face_color[self._selected_boxes[0]] = (1, 1, 1)
+            if self._selected_shapes[1] is None:
+                vertex_color[self._selected_shapes[0]] = (0, 0.6, 1)
+                box_face_color[self._selected_shapes[0]] = (1, 1, 1)
             else:
-                vertex_color[self._selected_boxes[0]] = (0, 0.6, 1)
-                box_face_color[self._selected_boxes[0]] = (0, 0.6, 1)
+                vertex_color[self._selected_shapes[0]] = (0, 0.6, 1)
+                box_face_color[self._selected_shapes[0]] = (0, 0.6, 1)
             self._node.set_data(
                 data, border_width=self.edge_width, box_color=vertex_color, box_face_color=box_face_color,
                 border_color=self.edge_color, color=self.face_color)
@@ -334,8 +341,7 @@ class Ellipses(Layer):
             a status update.
         """
         coord = self._get_coord(position, indices)
-        self._set_selected_boxes(coord)
-        value = self._selected_boxes
+        value = self._get_selected_shapes(coord)
         coord_shift = copy(coord)
         coord_shift[0] = coord[1]
         coord_shift[1] = coord[0]
@@ -344,10 +350,10 @@ class Ellipses(Layer):
             pass
         else:
             msg = msg + ', %s, index %d' % (self.name, value[0])
-            if value[1] is None:
-                pass
-            else:
-                msg = msg + ', vertex %d' % value[1]
+            # if value[1] is None:
+            #     pass
+            # else:
+            #     msg = msg + ', vertex %d' % value[1]
         return coord, value, msg
 
     def _add(self, coord, br=None):
@@ -390,7 +396,7 @@ class Ellipses(Layer):
             tl[1] = 0
 
         self.data = append(self.data, [[tl, br]], axis=0)
-        self._selected_boxes = [len(self.data)-1, index]
+        self._selected_shapes = [len(self.data)-1, index]
         self._refresh()
 
     def _remove(self, coord):
@@ -404,14 +410,13 @@ class Ellipses(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        index = self._selected_boxes
+        index = self._selected_shapes
         if index is None:
             pass
         else:
-            self._selected_boxes = None
             self.data = delete(self.data, index[0], axis=0)
+            self._selected_shapes = self._get_selected_shapes(coord)
             self._refresh()
-            self._select(coord)
 
     def _move(self, coord):
         """Moves object at given mouse position
@@ -424,7 +429,8 @@ class Ellipses(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        index = self._selected_boxes
+        self._is_moving=True
+        index = self._selected_shapes
         if index is None:
             pass
         else:
@@ -456,9 +462,25 @@ class Ellipses(Layer):
                     br[1] = max_shape[1]-1
                 self.data[index[0]] = [tl, br]
             else:
-                box = self._expand_box(self.data[index[0]])
-                tl = coord
-                br = box[np.mod(index[1]+2,4)]
+                box = self._expand_bounding_box(self.data[index[0]])
+                if self._fixed is None:
+                    self._fixed_index = np.mod(index[1]+4,8)
+                    self._fixed = box
+                    self._aspect_ratio = (box[4][1]-box[0][1])/(box[4][0]-box[0][0])
+
+                if np.mod(self._fixed_index, 2) == 0:
+                    # corner selected
+                    br = self._fixed[self._fixed_index]
+                    tl = coord
+                elif np.mod(self._fixed_index, 4) == 1:
+                    # top selected
+                    br = self._fixed[np.mod(self._fixed_index-1,8)]
+                    tl = [self._fixed[np.mod(self._fixed_index+1,8)][0], coord[1]]
+                else:
+                    # side selected
+                    br = self._fixed[np.mod(self._fixed_index-1,8)]
+                    tl = [coord[0], self._fixed[np.mod(self._fixed_index+1,8)][1]]
+
                 if tl[0]==br[0]:
                     if index[1] == 1 or index[1] == 2:
                         tl[0] = tl[0]+1
@@ -470,10 +492,19 @@ class Ellipses(Layer):
                     else:
                         tl[1] = tl[1]-1
 
+                if self._fixed_aspect:
+                    ratio = abs((tl[1]-br[1])/(tl[0]-br[0]))
+                    if np.mod(self._fixed_index, 2) == 0:
+                        # corner selected
+                        if ratio>self._aspect_ratio:
+                            tl[1] = br[1]+(tl[1]-br[1])*self._aspect_ratio/ratio
+                        else:
+                            tl[0] = br[0]+(tl[0]-br[0])*ratio/self._aspect_ratio
+
                 self.data[index[0]] = [tl, br]
 
             self.highlight = True
-            self._selected_boxes_stored = index
+            self._selected_shapes_stored = index
             self._refresh()
 
     def _select(self, coord):
@@ -487,23 +518,20 @@ class Ellipses(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        self._set_selected_boxes(coord)
-        index = self._selected_boxes
-        if index == self._selected_boxes_stored:
-            pass
-        elif index is None:
+        if self._selected_shapes == self._selected_shapes_stored:
+            return
+
+        if self._selected_shapes is None:
             self.highlight = False
-            self._refresh()
-            self._selected_boxes_stored = index
         else:
             self.highlight = True
-            self._refresh()
-            self._selected_boxes_stored = index
+        self._selected_shapes_stored = self._selected_shapes
+        self._refresh()
 
     def _unselect(self):
         if self.highlight:
             self.highlight = False
-            self._selected_boxes_stored = None
+            self._selected_shapes_stored = None
             self._refresh()
 
     def interact(self, position, indices, mode=True, dragging=False, shift=False, ctrl=False,
@@ -518,51 +546,69 @@ class Ellipses(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
-        if not mode:
-            #If not in annotation mode unselect all
+        if not self._fixed_aspect == shift:
+            self._fixed_aspect = shift
+            if self._is_moving:
+                coord = self._get_coord(position, indices)
+                self._move(coord)
+
+        if mode is None:
+            #If not in edit or addition mode unselect all
             self._unselect()
-        else:
-            #If in annotation mode
-            if pressed and not shift and not ctrl:
+        elif mode == 'edit':
+            #If in edit mode
+            coord = self._get_coord(position, indices)
+            if pressed and not ctrl:
+                #Set coordinate of initial drag
+                self._selected_shapes = self._get_selected_shapes(coord)
+                self._drag_start = coord
+            elif pressed and ctrl:
+                #Delete an existing box if any on control press
+                self._selected_shapes = self._get_selected_shapes(coord)
+                self._remove(coord)
+            elif moving and dragging:
+                #Drag an existing box if any
+                self._move(coord)
+            elif released:
+                self._is_moving=False
+            elif self._is_moving:
+                pass
+            else:
+                #Highlight boxes if any an over
+                self._selected_shapes = self._get_selected_shapes(coord)
+                self._select(coord)
+                self._fixed = None
+        elif mode == 'add':
+            #If in addition mode
+            coord = self._get_coord(position, indices)
+            if pressed:
                 #Start add a new box
                 self._ready_to_create_box = True
                 self._creating_box = False
-                self._create_tl = self._get_coord(position, indices)
-            elif moving and dragging and not shift and not ctrl:
+                self._create_tl = coord
+            elif moving and dragging:
                 #If moving and dragging check if ready to make new box
                 if self._ready_to_create_box:
-                    coord = self._get_coord(position, indices)
                     self.highlight = True
                     self._add(self._create_tl, coord)
                     self._ready_to_create_box = False
                     self._creating_box = True
                 elif self._creating_box:
                     #If making a new box, update it's position
-                    coord = self._get_coord(position, indices)
                     self._move(coord)
-            elif released and dragging and not shift and not ctrl:
+            elif released and dragging:
+                #One release add new box
                 if self._creating_box:
                     self._creating_box = False
                     self._unselect()
+                    self._fixed = None
                 else:
-                    coord = self._get_coord(position, indices)
                     self._add(coord)
                     self._ready_to_create_box = False
-            elif pressed and ctrl:
-                #Delete an existing box if any
-                coord = self._get_coord(position, indices)
-                self._remove(coord)
-            elif pressed and shift:
-                #Grab coordinate of initial dragg
-                self._drag_start = self._get_coord(position, indices)
-            elif moving and dragging and shift:
-                #Drag an existing box if any
-                coord = self._get_coord(position, indices)
-                self._move(coord)
-            elif shift or ctrl:
-                #Highlight boxes if any
-                coord = self._get_coord(position, indices)
-                self._select(coord)
+                self._is_moving=False
+            elif released:
+                self._is_moving=False
             else:
-                #Turn off highlight mode if it was on
                 self._unselect()
+        else:
+            pass
