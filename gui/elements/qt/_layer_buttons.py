@@ -29,6 +29,20 @@ class QtLayerButtons(QFrame):
         layout.addWidget(self.deleteButton)
         self.setLayout(layout)
 
+        self.layers.viewer.events.mode.connect(self._set_button)
+
+    def _set_button(self, event):
+        with self.layers.viewer.events.blocker(self._set_button):
+            if self.layers.viewer.mode == 'add':
+                self.editCheckBox.setChecked(False)
+                self.additionCheckBox.setChecked(True)
+            elif self.layers.viewer.mode == 'edit':
+                self.additionCheckBox.setChecked(False)
+                self.editCheckBox.setChecked(True)
+            else:
+                self.editCheckBox.setChecked(False)
+                self.additionCheckBox.setChecked(False)
+
 class QtDeleteButton(QPushButton):
     def __init__(self, layers):
         super().__init__()
@@ -90,21 +104,13 @@ class QtEditCheckBox(QCheckBox):
                         QCheckBox::indicator:unchecked:hover {image: url(""" + path_edit_on + ");}"
         self.setStyleSheet(styleSheet)
         self.stateChanged.connect(lambda state=self: self._set_mode(state))
-        self.layers.viewer.events.mode.connect(self._set_button)
 
     def _set_mode(self, bool):
-        if bool:
-            self.layers.viewer._set_mode('edit')
-        else:
-            self.layers.viewer._set_mode(None)
-
-    def _set_button(self, event):
-        with self.layers.viewer.events.blocker(self._set_button):
-            if self.layers.viewer.mode == 'edit':
-                self.setChecked(True)
+        with self.layers.viewer.events.blocker(self._set_mode):
+            if bool:
+                self.layers.viewer._set_mode('edit')
             else:
-                self.setChecked(False)
-
+                self.layers.viewer._set_mode(None)
 
 class QtAdditionCheckBox(QCheckBox):
     def __init__(self, layers):
@@ -122,17 +128,10 @@ class QtAdditionCheckBox(QCheckBox):
                         QCheckBox::indicator:unchecked:hover {image: url(""" + path_add_on + ");}"
         self.setStyleSheet(styleSheet)
         self.stateChanged.connect(lambda state=self: self._set_mode(state))
-        self.layers.viewer.events.mode.connect(self._set_button)
 
     def _set_mode(self, bool):
-        if bool:
-            self.layers.viewer._set_mode('add')
-        else:
-            self.layers.viewer._set_mode(None)
-
-    def _set_button(self, event):
-        with self.layers.viewer.events.blocker(self._set_button):
-            if self.layers.viewer.mode == 'add':
-                self.setChecked(True)
+        with self.layers.viewer.events.blocker(self._set_mode):
+            if bool:
+                self.layers.viewer._set_mode('add')
             else:
-                self.setChecked(False)
+                self.layers.viewer._set_mode(None)
