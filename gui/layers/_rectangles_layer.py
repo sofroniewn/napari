@@ -70,6 +70,7 @@ class Rectangles(Layer):
         self._aspect_ratio = 1
         self.highlight = False
         self._is_moving=False
+        self._fixed_index = 0
 
     @property
     def coords(self) -> np.ndarray:
@@ -190,6 +191,14 @@ class Rectangles(Layer):
         bl = [min(box[0][0],box[1][0]), max(box[0][1],box[1][1])]
         return [tl, tr, br, bl]
 
+    def _expand_bounding_box(self, box):
+        tl = np.array([min(box[0][0],box[1][0]), min(box[0][1],box[1][1])])
+        tr = np.array([max(box[0][0],box[1][0]), min(box[0][1],box[1][1])])
+        br = np.array([max(box[0][0],box[1][0]), max(box[0][1],box[1][1])])
+        bl = np.array([min(box[0][0],box[1][0]), max(box[0][1],box[1][1])])
+        return [tl, (tl+tr)/2, tr, (tr+br)/2, br, (br+bl)/2, bl, (bl+tl)/2]
+
+
     def _slice_boxes(self, indices):
         """Determines the slice of boxes given the indices.
 
@@ -227,17 +236,17 @@ class Rectangles(Layer):
             matches = matches.nonzero()[0]
             boxes = []
             for box in in_slice_boxes:
-                boxes.append(self._expand_box(box))
+                boxes.append(self._expand_bounding_box(box))
             in_slice_boxes = np.array(boxes)
 
-            offsets = np.broadcast_to(indices[:2], (len(in_slice_boxes), 4, 2)) - in_slice_boxes
+            offsets = np.broadcast_to(indices[:2], (len(in_slice_boxes), 8, 2)) - in_slice_boxes
             distances = abs(offsets)
 
             # Get the vertex sizes
             sizes = self.size
 
             # Check if any matching vertices
-            in_slice_matches = np.less_equal(distances, np.broadcast_to(sizes/2, (2, 4, len(in_slice_boxes))).T)
+            in_slice_matches = np.less_equal(distances, np.broadcast_to(sizes/2, (2, 8, len(in_slice_boxes))).T)
             in_slice_matches = np.all(in_slice_matches, axis=2)
             indices = in_slice_matches.nonzero()
 
@@ -247,7 +256,7 @@ class Rectangles(Layer):
                 return [matches, vertex]
             else:
                 # If no matching vertex check if index inside bounding box
-                in_slice_matches = np.all(np.array([np.all(offsets[:,0]>=0, axis=1), np.all(offsets[:,2]<=0, axis=1)]), axis=0)
+                in_slice_matches = np.all(np.array([np.all(offsets[:,0]>=0, axis=1), np.all(offsets[:,4]<=0, axis=1)]), axis=0)
                 indices = in_slice_matches.nonzero()
                 if len(indices[0]) > 0:
                     matches = matches[indices[0][-1]]
@@ -272,7 +281,7 @@ class Rectangles(Layer):
         if len(in_slice_boxes) > 0:
             boxes = []
             for box in in_slice_boxes:
-                boxes.append(self._expand_box(box))
+                boxes.append(self._expand_bounding_box(box))
 
             # Update the boxes node
             data = np.array(boxes) + 0.5
@@ -458,12 +467,24 @@ class Rectangles(Layer):
                     br[1] = max_shape[1]-1
                 self.data[index[0]] = [tl, br]
             else:
-                box = self._expand_box(self.data[index[0]])
+                box = self._expand_bounding_box(self.data[index[0]])
                 if self._fixed is None:
-                    self._fixed = box[np.mod(index[1]+2,4)]
-                    self._aspect_ratio = (box[2][1]-box[0][1])/(box[2][0]-box[0][0])
-                br = self._fixed
-                tl = coord
+                    self._fixed_index = np.mod(index[1]+4,8)
+                    self._fixed = box
+                    self._aspect_ratio = (box[4][1]-box[0][1])/(box[4][0]-box[0][0])
+
+                if np.mod(self._fixed_index, 2) == 0:
+                    # corner selected
+                    br = self._fixed[self._fixed_index]
+                    tl = coord
+                elif np.mod(self._fixed_index, 4) == 1:
+                    # top selected
+                    br = self._fixed[np.mod(self._fixed_index-1,8)]
+                    tl = [self._fixed[np.mod(self._fixed_index+1,8)][0], coord[1]]
+                else:
+                    # side selected
+                    br = self._fixed[np.mod(self._fixed_index-1,8)]
+                    tl = [coord[0], self._fixed[np.mod(self._fixed_index+1,8)][1]]
 
                 if tl[0]==br[0]:
                     if index[1] == 1 or index[1] == 2:
@@ -478,10 +499,12 @@ class Rectangles(Layer):
 
                 if self._fixed_aspect:
                     ratio = abs((tl[1]-br[1])/(tl[0]-br[0]))
-                    if ratio>self._aspect_ratio:
-                        tl[1] = br[1]+(tl[1]-br[1])*self._aspect_ratio/ratio
-                    else:
-                        tl[0] = br[0]+(tl[0]-br[0])*ratio/self._aspect_ratio
+                    if np.mod(self._fixed_index, 2) == 0:
+                        # corner selected
+                        if ratio>self._aspect_ratio:
+                            tl[1] = br[1]+(tl[1]-br[1])*self._aspect_ratio/ratio
+                        else:
+                            tl[0] = br[0]+(tl[0]-br[0])*ratio/self._aspect_ratio
 
                 self.data[index[0]] = [tl, br]
 
