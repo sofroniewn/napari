@@ -66,7 +66,10 @@ class Rectangles(Layer):
         self._create_tl = None
         self._drag_start = None
         self._fixed = None
+        self._fixed_aspect = False
+        self._aspect_ratio = 1
         self.highlight = False
+        self._is_moving=False
 
     @property
     def coords(self) -> np.ndarray:
@@ -422,6 +425,7 @@ class Rectangles(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
+        self._is_moving=True
         index = self._selected_shapes
         if index is None:
             pass
@@ -457,8 +461,10 @@ class Rectangles(Layer):
                 box = self._expand_box(self.data[index[0]])
                 if self._fixed is None:
                     self._fixed = box[np.mod(index[1]+2,4)]
-                tl = coord
+                    self._aspect_ratio = (box[2][1]-box[0][1])/(box[2][0]-box[0][0])
                 br = self._fixed
+                tl = coord
+
                 if tl[0]==br[0]:
                     if index[1] == 1 or index[1] == 2:
                         tl[0] = tl[0]+1
@@ -469,6 +475,13 @@ class Rectangles(Layer):
                         tl[1] = tl[1]+1
                     else:
                         tl[1] = tl[1]-1
+
+                if self._fixed_aspect:
+                    ratio = abs((tl[1]-br[1])/(tl[0]-br[0]))
+                    if ratio>self._aspect_ratio:
+                        tl[1] = br[1]+(tl[1]-br[1])*self._aspect_ratio/ratio
+                    else:
+                        tl[0] = br[0]+(tl[0]-br[0])*ratio/self._aspect_ratio
 
                 self.data[index[0]] = [tl, br]
 
@@ -515,6 +528,12 @@ class Rectangles(Layer):
         indices : sequence of int or slice
             Indices that make up the slice.
         """
+        if not self._fixed_aspect == shift:
+            self._fixed_aspect = shift
+            if self._is_moving:
+                coord = self._get_coord(position, indices)
+                self._move(coord)
+
         if mode is None:
             #If not in edit or addition mode unselect all
             self._unselect()
@@ -532,6 +551,10 @@ class Rectangles(Layer):
             elif moving and dragging:
                 #Drag an existing box if any
                 self._move(coord)
+            elif released:
+                self._is_moving=False
+            elif self._is_moving:
+                pass
             else:
                 #Highlight boxes if any an over
                 self._selected_shapes = self._get_selected_shapes(coord)
@@ -564,5 +587,8 @@ class Rectangles(Layer):
                 else:
                     self._add(coord)
                     self._ready_to_create_box = False
+                self._is_moving=False
+            elif released:
+                self._is_moving=False
         else:
             pass

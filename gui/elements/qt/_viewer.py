@@ -129,6 +129,12 @@ class QtViewer(QSplitter):
                     layer.interact(self.viewer.position, self.viewer.dimensions.indices,
                     mode=self.viewer.mode, dragging=False,
                     shift=False, ctrl=True, pressed=False, released=False, moving=False)
+            elif event.key == 'Shift':
+                if self.viewer.mode is not None and self.viewer.active_markers:
+                    layer = self.viewer.layers[self.viewer.active_markers]
+                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                    mode=self.viewer.mode, dragging=False,
+                    shift=True, ctrl=False, pressed=False, released=False, moving=False)
             elif event.key == 'a':
                 self.viewer._set_mode('add')
                 print(self.viewer.mode)
@@ -144,9 +150,15 @@ class QtViewer(QSplitter):
             if self.viewer._mode_history is not None:
                 self.viewer.mode = self.viewer._mode_history
         elif event.key == 'Meta':
-                if self.viewer.mode == 'edit' and self.viewer.active_markers:
-                    self.canvas.native.setCursor(self._cursors['cross'])
-                    layer = self.viewer.layers[self.viewer.active_markers]
-                    layer.interact(self.viewer.position, self.viewer.dimensions.indices,
-                    mode=self.viewer.mode, dragging=False,
-                    shift=False, ctrl=False, pressed=False, released=False, moving=False)
+            if self.viewer.mode == 'edit' and self.viewer.active_markers:
+                self.canvas.native.setCursor(self._cursors['cross'])
+                layer = self.viewer.layers[self.viewer.active_markers]
+                layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                mode=self.viewer.mode, dragging=False,
+                shift=False, ctrl=False, pressed=False, released=False, moving=False)
+        elif event.key == 'Shift':
+            if self.viewer.mode is not None and self.viewer.active_markers:
+                layer = self.viewer.layers[self.viewer.active_markers]
+                layer.interact(self.viewer.position, self.viewer.dimensions.indices,
+                mode=self.viewer.mode, dragging=False,
+                shift=False, ctrl=False, pressed=False, released=False, moving=False)
