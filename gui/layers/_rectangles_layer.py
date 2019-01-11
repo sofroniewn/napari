@@ -39,7 +39,7 @@ class Rectangles(Layer):
 
     def __init__(self, coords, edge_width=1, size=10, vertex_color = 'black', edge_color='black', face_color='white'):
 
-        visual = ShapeNode(border_method='agg')
+        visual = ShapeNode(border_method='gl')
         super().__init__(visual)
 
         # Save the bbox coordinates
@@ -71,6 +71,7 @@ class Rectangles(Layer):
         self.highlight = False
         self._is_moving=False
         self._fixed_index = 0
+        self._view_data = None
 
     @property
     def coords(self) -> np.ndarray:
@@ -171,7 +172,6 @@ class Rectangles(Layer):
         """
         if self._need_display_update:
             self._need_display_update = False
-
             self._set_view_slice(self.viewer.dimensions.indices)
 
         if self._need_visual_update:
@@ -289,29 +289,22 @@ class Rectangles(Layer):
             # if no markers in this slice send dummy data
             data = np.empty((0, 2))
 
-        if self.highlight and self._selected_shapes is not None:
-            vertex_color = [None for i in range(len(data))]
-            vertex_edge_color = [None for i in range(len(data))]
-            edge_color = [self.edge_color for i in range(len(data))]
-            if self._selected_shapes[1] is None:
-                edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
-                vertex_color[self._selected_shapes[0]] = (1, 1, 1)
-                vertex_edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
-            else:
-                edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
-                vertex_color[self._selected_shapes[0]] = (0, 0.6, 1)
-                vertex_edge_color[self._selected_shapes[0]] = (0, 0.6, 1)
-            self._node.set_data(
-                data, border_width=1, vertex_color=vertex_color,
-                vertex_edge_color=vertex_edge_color, vertex_symbol='square',
-                border_color=edge_color, color=self.face_color, vertex_size=7)
-        else:
-            self._node.set_data(
-                data, border_width=self.edge_width, vertex_color=None,
-                vertex_edge_color=None,
-                border_color=self.edge_color, color=self.face_color, vertex_size=0)
+
+        self._view_data = data
+        self._node.set_data(
+            data, border_width=self.edge_width, vertex_color=None,
+            vertex_edge_color=None,
+            border_color=self.edge_color, color=self.face_color, vertex_size=0)
         self._need_visual_update = True
+        self._set_highlight()
         self._update()
+
+    def _set_highlight(self):
+        if self.highlight and self._selected_shapes is not None:
+            data = self._view_data[self._selected_shapes[0]].mean(axis=0)
+            self._highlight_node.set_data(np.array([data]), size=10, face_color='red')
+        else:
+            self._highlight_node.set_data(np.empty((0, 2)), size=0)
 
     def _get_coord(self, position, indices):
         max_shape = self.viewer.dimensions.max_shape
@@ -374,8 +367,8 @@ class Rectangles(Layer):
         max_shape = self.viewer.dimensions.max_shape
 
         if br is None:
-            tl = [coord[0]-25, coord[1]-25]
-            br = [coord[0]+25, coord[1]+25]
+            tl = [coord[0]-25, coord[1]-25, *coord[2:]]
+            br = [coord[0]+25, coord[1]+25, *coord[2:]]
             index = None
         else:
             tl = coord
@@ -399,6 +392,9 @@ class Rectangles(Layer):
             br[1] = 50
             tl[1] = 0
 
+        # print('to_add', [[tl, br]])
+        # print('data', self.data)
+        # print('index', index)
         self.data = append(self.data, [[tl, br]], axis=0)
         self._selected_shapes = [len(self.data)-1, index]
         self._refresh()
@@ -530,7 +526,8 @@ class Rectangles(Layer):
         else:
             self.highlight = True
         self._selected_shapes_stored = self._selected_shapes
-        self._refresh()
+        self._set_highlight()
+
 
     def _unselect(self):
         if self.highlight:

@@ -1,6 +1,8 @@
 # TODO: create & use our own transform class
 from vispy.visuals.transforms import STTransform
 from vispy.gloo import get_state_presets
+from .._vispy.scene.visuals import Markers as MarkersNode
+import numpy as np
 
 class VisualWrapper:
     """Wrapper around ``vispy.scene.VisualNode`` objects.
@@ -33,6 +35,7 @@ class VisualWrapper:
     """
     def __init__(self, central_node):
         self._node = central_node
+        self._highlight_node = MarkersNode(pos=np.array([[0,0]]), size=0)
         self._blending = 'translucent'
 
     _blending_modes = set(get_state_presets().keys())
@@ -46,6 +49,7 @@ class VisualWrapper:
         # to a NullTransform so we reset it here
         if not isinstance(self._node.transform, STTransform):
             self._node.transform = STTransform()
+            self._highlight_node.transform = STTransform()
 
         return self._node.transform
 
@@ -63,6 +67,7 @@ class VisualWrapper:
         self.z_index = order
         # end workaround
         self._node.order = order
+        self._highlight_node.order = order
 
     @property
     def _parent(self):
@@ -73,6 +78,7 @@ class VisualWrapper:
     @_parent.setter
     def _parent(self, parent):
         self._node.parent = parent
+        self._highlight_node.parent = parent
 
     @property
     def opacity(self):
@@ -125,6 +131,7 @@ class VisualWrapper:
 
     @visible.setter
     def visible(self, visibility):
+        self._highlight_node.visible = visibility
         self._node.visible = visibility
 
     @property
@@ -136,6 +143,7 @@ class VisualWrapper:
     @scale.setter
     def scale(self, scale):
         self._master_transform.scale = scale
+        self._highlight_node.transform.scale = scale
 
     @property
     def translate(self):
@@ -146,6 +154,7 @@ class VisualWrapper:
     @translate.setter
     def translate(self, translate):
         self._master_transform.translate = translate
+        self._highlight_node.transform.translate = translate
 
     @property
     def z_index(self):
@@ -158,3 +167,4 @@ class VisualWrapper:
         tl[2] = -index
 
         tr.translate = tl
+        self._highlight_node.transform.translate=tl
