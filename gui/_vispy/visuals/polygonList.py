@@ -75,7 +75,7 @@ class PolygonListVisual(CompoundVisual):
         self._triangulate = triangulate
         self._border_method = border_method
         self._vertex_symbol = vertex_symbol
-
+        self._subvisuals = []
         self._update()
         CompoundVisual.__init__(self, [], **kwargs)
 
