@@ -1,7 +1,8 @@
 from qtpy.QtCore import QCoreApplication, Qt, QSize
 from qtpy.QtWidgets import QWidget, QSlider, QVBoxLayout, QSplitter
 from qtpy.QtGui import QCursor, QPixmap
-from vispy.scene import SceneCanvas, PanZoomCamera
+from ...._vispy.scene import SceneCanvas
+from vispy.scene import PanZoomCamera
 
 from ..._dims.view import QtDims
 from ..._layers.view import QtLayers

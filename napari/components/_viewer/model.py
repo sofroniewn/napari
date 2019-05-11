@@ -203,7 +203,7 @@ class Viewer:
             Numpy array of type ubyte and shape (h, w, 4). Index [0, 0] is the
             upper-left corner of the rendered region.
         """
-        return self.canvas.render(region, size, bgcolor)
+        return self._canvas.render(region, size, bgcolor)
 
     def add_layer(self, layer):
         """Adds a layer to the viewer.
