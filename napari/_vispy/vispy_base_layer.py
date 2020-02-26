@@ -3,6 +3,8 @@ from vispy.app import Canvas
 from vispy.visuals.transforms import STTransform
 from abc import ABC, abstractmethod
 
+from ..layers.transforms import Scale
+
 
 class VispyBaseLayer(ABC):
     """Base object for individual layer views
@@ -92,7 +94,12 @@ class VispyBaseLayer(ABC):
 
     @scale.setter
     def scale(self, scale):
-        self._master_transform.scale = scale
+        old_scale_transform = self.layer.transforms['regular_scale']
+        new_scale_transform = Scale(scale, name='regular_scale')
+        self.layer.transforms.replace(old_scale_transform, new_scale_transform)
+        self._master_transform.scale = self.layer.transforms.set_slice(
+            self.layer.dims.displayed[::-1]
+        ).scale
 
     @property
     def translate(self):
