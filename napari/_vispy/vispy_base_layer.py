@@ -135,7 +135,9 @@ class VispyBaseLayer(ABC):
         self.node.update()
 
     def _on_scale_change(self, event=None):
-        self.scale = np.flip(self.layer.scale * self.layer._scale_view)
+        self.scale = np.flip(
+            np.array(self.layer.scale) * np.array(self.layer._scale_view)
+        )
         if self.layer.is_pyramid:
             self.layer.top_left = self.find_top_left()
         self.layer.position = self._transform_position(self._position)
