@@ -6,6 +6,7 @@ import numpy as np
 from skimage import img_as_ubyte
 from ._constants import Blending
 
+from ..transforms import TransformChain, Scale, Translate
 from ...components import Dims
 from ...utils.event import EmitterGroup, Event
 from ...utils.keybindings import KeymapMixin
@@ -109,6 +110,7 @@ class Layer(KeymapMixin, ABC):
         metadata=None,
         scale=None,
         translate=None,
+        transforms=None,
         opacity=1,
         blending='translucent',
         visible=True,
@@ -141,6 +143,23 @@ class Layer(KeymapMixin, ABC):
         self._scale_view = np.ones(ndim)
         self._translate_view = np.zeros(ndim)
         self._translate_grid = np.zeros(ndim)
+
+        # Construct the transform chain
+        self._transforms = TransformChain()
+        self._transforms.append(Scale(self._scale_view, name='scale_view'))
+        self._transforms.append(
+            Translate(self._translate_view, name='translate_view')
+        )
+        self._transforms.append(
+            Translate(self._translate_grid, name='translate_grid')
+        )
+        self._transforms.append(Scale(self._scale, name='regular_scale'))
+        self._transforms.append(
+            Translate(self._translate, name='regular_translate')
+        )
+        self._scale = self._transforms.scale
+        self._translate = self._transforms.translate
+
         self.coordinates = (0,) * ndim
         self._position = (0,) * self.dims.ndisplay
         self.is_pyramid = False
@@ -162,6 +181,7 @@ class Layer(KeymapMixin, ABC):
             deselect=Event,
             scale=Event,
             translate=Event,
+            transforms=Event,
             data=Event,
             name=Event,
             thumbnail=Event,
@@ -284,6 +304,11 @@ class Layer(KeymapMixin, ABC):
         self._editable = editable
         self._set_editable(editable=editable)
         self.events.editable()
+
+    @property
+    def transforms(self):
+        """Chained transformations belonging to the layer."""
+        return self._transforms
 
     @property
     def scale(self):
