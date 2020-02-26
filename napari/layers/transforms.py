@@ -143,6 +143,19 @@ class IdentityTransform(Transform):
         self.scale = np.array(scale)
         self.translate = np.array(translate)
 
+    def __call__(self, coords):
+        coords = np.atleast_2d(coords)
+        return coords
+
+    @property
+    def inverse(self):
+        return self
+
+    def set_slice(self, axes: Sequence[int]) -> Translate:
+        return IdentityTransform(
+            scale=self.scale[axes], translate=self.translate[axes]
+        )
+
 
 class Translate(Transform):
     """n-dimensional translation (shift) class.
