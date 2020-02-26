@@ -78,6 +78,16 @@ class TransformChain(ListModel, Transform):
     def set_slice(self, axes: Sequence[int]) -> TransformChain:
         return TransformChain([tf.set_slice(axes) for tf in self])
 
+    def replace(self, old_item, new_item):
+        """Modifies TransformChain in place."""
+        idx = self.index(old_item)
+        self.remove(idx)
+        try:
+            self.insert(idx, new_item)
+        except IndexError:
+            # If old_item was last, the list index could be out of range
+            self.append(new_item)
+
     def _update_attributes(self):
         if self != []:
             for idx, t in enumerate(self):
