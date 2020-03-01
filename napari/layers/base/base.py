@@ -6,7 +6,7 @@ import numpy as np
 from skimage import img_as_ubyte
 from ._constants import Blending
 
-from ..transforms import TransformChain, Scale, Translate
+from ..transforms import Affine
 from ...components import Dims
 from ...utils.event import EmitterGroup, Event
 from ...utils.keybindings import KeymapMixin
@@ -145,20 +145,9 @@ class Layer(KeymapMixin, ABC):
         self._translate_grid = np.zeros(ndim)
 
         # Construct the transform chain
-        self._transforms = TransformChain()
-        self._transforms.append(Scale(self._scale_view, name='scale_view'))
-        self._transforms.append(
-            Translate(self._translate_view, name='translate_view')
-        )
-        self._transforms.append(
-            Translate(self._translate_grid, name='translate_grid')
-        )
-        self._transforms.append(Scale(self._scale, name='regular_scale'))
-        self._transforms.append(
-            Translate(self._translate, name='regular_translate')
-        )
-        self._scale = self._transforms.scale
-        self._translate = self._transforms.translate
+        self._transform = Affine(A=np.eye(ndim), b=np.zeros(ndim))
+        self._transforms.scale = self._scale
+        self._transforms.translate = self._translate
 
         self.coordinates = (0,) * ndim
         self._position = (0,) * self.dims.ndisplay
@@ -432,9 +421,12 @@ class Layer(KeymapMixin, ABC):
             self.editable = True
 
     def _get_range(self):
-        extent = self._get_extent()
+        extent = np.asarray(self._get_extent())
         return tuple(
-            (s * e[0], s * e[1], s) for e, s in zip(extent, self.scale)
+            (r[0], r[1], 1)
+            for r in zip(
+                self._transform(extent[0]), self._transform(extent[1])
+            )
         )
 
     def _get_base_state(self):

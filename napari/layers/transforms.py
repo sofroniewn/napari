@@ -3,6 +3,7 @@ from __future__ import annotations  # noqa: F407
 import toolz as tz
 from typing import Sequence
 import numpy as np
+import scipy.ndimage as ndi
 
 from ..utils.list import ListModel
 
@@ -218,3 +219,95 @@ class Scale(Transform):
 
     def set_slice(self, axes: Sequence[int]) -> Scale:
         return Scale(self.scale[axes])
+
+
+class Affine(Transform):
+    """n-dimensional affine transform class.
+
+    Attributes
+    ----------
+    A : ndarray
+    b : ndarray
+    """
+
+    def __init__(self, A=None, b=None, name='affine'):
+        super().__init__(name=name)
+        if A is None and b is None:
+            raise ValueError('One of A or b must be set for Affine transform')
+
+        if A is None:
+            A = np.eye(len(b))
+
+        if A.ndim != 2:
+            raise ValueError('A matrix must be two dimensional')
+
+        if A.shape[0] != A.shape[1]:
+            raise ValueError('A matrix must be two square')
+
+        if b is None:
+            b = np.zeros(A.ndim)
+
+        if b.ndim != 1:
+            raise ValueError('b vector must be one dimensional')
+
+        if A.shape[0] != b.shape[0]:
+            raise ValueError('A matrix and b vector must map from same space')
+
+        self.A = A
+        self.b = b
+        self.ndim = b.shape[0]
+
+    def __call__(self, coords):
+        return ndi.affine_transform(coords, self.A, self.b)
+
+    @property
+    def translate(self):
+        return self.b
+
+    @translate.setter
+    def translate(self, b):
+        self.b = b
+
+    @property
+    def scale(self):
+        ZS = np.linalg.cholesky(np.dot(self.A.T, self.A)).T
+        Z = np.diag(ZS)
+        return Z
+
+    @scale.setter
+    def scale(self, Z):
+        self.A = np.diag(Z) @ np.linalg.inv(np.diag(self.scale)) @ self.A
+
+    @property
+    def augmented(self):
+        M = np.eye(self.ndim + 1)
+        M[:-1, :-1] = self.A
+        M[:-1, -1] = self.b
+        return M
+
+    @augmented.setter
+    def augmented(self, M):
+        self.A = M[:-1, :-1]
+        self.b = M[:-1, -1]
+
+    @property
+    def inverse(self):
+        A_inv = np.linalg.inv(self.A)
+        return Affine(A=A_inv, b=-A_inv @ self.b)
+
+    def set_slice(self, axes: Sequence[int]) -> Affine:
+        return Affine(A=self.A[axes, axes], b=self.b[axes])
+
+    def set_pad(self, axes: Sequence[int]) -> Affine:
+        n = self.ndim + len(axes)
+        A = np.eye(n)
+        b = np.zeros(n)
+        keep_axes = [i for i in range(n) if i not in axes]
+        A[keep_axes, keep_axes] = self.A
+        b[keep_axes] = self.b
+        return Affine(A=A, b=b)
+
+    def compose(self, transform: Affine) -> Affine:
+        A = self.A @ transform.A
+        b = self.b + self.A @ transform.b
+        return Affine(A=A, b=b)
