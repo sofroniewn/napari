@@ -146,8 +146,8 @@ class Layer(KeymapMixin, ABC):
 
         # Construct the transform chain
         self._transform = Affine(A=np.eye(ndim), b=np.zeros(ndim))
-        self._transforms.scale = self._scale
-        self._transforms.translate = self._translate
+        self._transform.scale = np.asarray(self._scale)
+        self._transform.translate = np.asarray(self._translate)
 
         self.coordinates = (0,) * ndim
         self._position = (0,) * self.dims.ndisplay
@@ -421,13 +421,13 @@ class Layer(KeymapMixin, ABC):
             self.editable = True
 
     def _get_range(self):
-        extent = np.asarray(self._get_extent())
-        return tuple(
-            (r[0], r[1], 1)
-            for r in zip(
-                self._transform(extent[0]), self._transform(extent[1])
-            )
-        )
+        extent = np.asarray(self._get_extent()).T
+        min_range = self._transform(extent[0])
+        max_range = self._transform(extent[1])
+        print('eee', extent)
+        print('rr', min_range)
+        print('rrm', max_range)
+        return tuple((r[0], r[1], 1) for r in zip(min_range, max_range))
 
     def _get_base_state(self):
         """Get dictionary of attributes on base layer.
@@ -589,10 +589,11 @@ class Layer(KeymapMixin, ABC):
         value : tuple, None
             Value of the data at the coordinates.
         """
-        if self.visible:
-            return self._get_value()
-        else:
-            return None
+        # if self.visible:
+        #     return self._get_value()
+        # else:
+        #     return None
+        pass
 
     @contextmanager
     def block_update_properties(self):
@@ -616,7 +617,7 @@ class Layer(KeymapMixin, ABC):
         if self.visible:
             self._set_view_slice()
             self.events.set_data()
-            self._update_thumbnail()
+            # self._update_thumbnail()
             self._update_coordinates()
             self._set_highlight(force=True)
 

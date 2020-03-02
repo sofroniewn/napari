@@ -2,9 +2,8 @@ from vispy.gloo import gl
 from vispy.app import Canvas
 from vispy.visuals.transforms import STTransform
 from abc import ABC, abstractmethod
-import numpy as np
 
-from ..layers.transforms import Scale
+# import numpy as np
 
 
 class VispyBaseLayer(ABC):
@@ -95,12 +94,7 @@ class VispyBaseLayer(ABC):
 
     @scale.setter
     def scale(self, scale):
-        old_scale_transform = self.layer.transforms['regular_scale']
-        new_scale_transform = Scale(scale, name='regular_scale')
-        self.layer.transforms.replace(old_scale_transform, new_scale_transform)
-        self._master_transform.scale = self.layer.transforms.set_slice(
-            self.layer.dims.displayed[::-1]
-        ).scale
+        self._master_transform.scale = scale
 
     @property
     def translate(self):
@@ -135,9 +129,10 @@ class VispyBaseLayer(ABC):
         self.node.update()
 
     def _on_scale_change(self, event=None):
-        self.scale = np.flip(
-            np.array(self.layer.scale) * np.array(self.layer._scale_view)
-        )
+        self.scale = [
+            self.layer.scale[d] * self.layer._scale_view[d]
+            for d in self.layer.dims.displayed[::-1]
+        ]
         if self.layer.is_pyramid:
             self.layer.top_left = self.find_top_left()
         self.layer.position = self._transform_position(self._position)

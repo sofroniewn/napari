@@ -488,7 +488,15 @@ class Image(IntensityVisualizationMixin, Layer):
                 ).transpose(order)
         else:
             self._scale_view = np.ones(self.dims.ndim)
-            image = np.asarray(self.data[self.dims.indices]).transpose(order)
+            indices = np.array(self.dims.indices)
+            t = self._transform.set_slice(self.dims.not_displayed)
+            inds = np.array(indices[self.dims.not_displayed]).astype('float')
+            adj = t(inds)
+            for i, ind in enumerate(self.dims.not_displayed):
+                indices[ind] = int(adj[i])
+            image = np.asarray(self.data[tuple(indices)]).transpose(order)
+            # except:
+            #     image = np.zeros(self.dims.ndisplay * (32))
             thumbnail = image
 
         if self.rgb and image.dtype.kind == 'f':
