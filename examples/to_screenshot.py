@@ -17,7 +17,7 @@ with napari.gui_qt():
 
     # add the image
     img_layer = viewer.add_image(data.camera(), name='photographer')
-    img_layer.colormap = 'gray'
+    img_layer.colormap = 'grays'
 
     # create a list of polygons
     polygons = [

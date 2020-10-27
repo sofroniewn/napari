@@ -59,7 +59,7 @@ def split_channels(
     for key, val in kwargs.items():
         if key == 'colormap' and val is None:
             if n_channels == 1:
-                kwargs[key] = iter(['gray'])
+                kwargs[key] = iter(['grays'])
             elif n_channels == 2:
                 kwargs[key] = iter(MAGENTA_GREEN)
             else:

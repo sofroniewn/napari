@@ -351,7 +351,7 @@ def test_edge_color_colormap():
     data[:, 0, :] = 20 * data[:, 0, :]
     properties = {'angle': np.array([0, 1.5] * int((shape[0] / 2)))}
     layer = Vectors(
-        data, properties=properties, edge_color='angle', edge_colormap='gray',
+        data, properties=properties, edge_color='angle', edge_colormap='grays',
     )
     assert layer.properties == properties
     assert layer.edge_color_mode == 'colormap'
@@ -375,7 +375,7 @@ def test_edge_color_colormap():
     assert layer.edge_colormap.name == new_colormap
 
     # test adding a colormap with a vispy Colormap object
-    layer.edge_colormap = get_colormap('gray')
+    layer.edge_colormap = get_colormap('grays')
     assert 'unnamed colormap' in layer.edge_colormap.name
 
 
@@ -395,7 +395,7 @@ def test_edge_color_map_non_numeric_property():
         properties=properties,
         edge_color=initial_color,
         edge_color_cycle=color_cycle,
-        edge_colormap='gray',
+        edge_colormap='grays',
     )
     # layer should start out in direct edge color mode with all green vectors
     assert layer.edge_color_mode == 'direct'
@@ -427,7 +427,7 @@ def test_switching_edge_color_mode():
         properties=properties,
         edge_color=initial_color,
         edge_color_cycle=color_cycle,
-        edge_colormap='gray',
+        edge_colormap='grays',
     )
     # layer should start out in direct edge color mode with all green vectors
     assert layer.edge_color_mode == 'direct'

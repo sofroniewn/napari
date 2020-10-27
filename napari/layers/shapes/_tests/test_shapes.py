@@ -800,7 +800,7 @@ def test_switch_color_mode(attribute):
     color_cycle_kwarg = f'{attribute}_color_cycle'
     args = {
         color_kwarg: initial_color,
-        colormap_kwarg: 'gray',
+        colormap_kwarg: 'grays',
         color_cycle_kwarg: color_cycle,
     }
     layer = Shapes(data, properties=properties, **args)
@@ -1065,7 +1065,7 @@ def test_color_colormap(attribute):
     shapes_kwargs = {
         'properties': properties,
         f'{attribute}_color': 'shape_type',
-        f'{attribute}_colormap': 'gray',
+        f'{attribute}_colormap': 'grays',
     }
     layer = Shapes(data, **shapes_kwargs)
     assert layer.properties == properties
@@ -1154,9 +1154,9 @@ def test_add_colormap(attribute):
     args = {color_kwarg: 'shape_type', colormap_kwarg: 'viridis'}
     layer = Shapes(data, properties=annotations, **args)
 
-    setattr(layer, f'{attribute}_colormap', 'gray')
+    setattr(layer, f'{attribute}_colormap', 'grays')
     layer_colormap = getattr(layer, f'{attribute}_colormap')
-    assert layer_colormap.name == 'gray'
+    assert layer_colormap.name == 'grays'
 
 
 def test_edge_width():

@@ -47,16 +47,19 @@ multi_channel_test_data = [
     ((), {'gamma': [0.3, 0.4, 0.5, 0.6, 0.7]}),
     ((), {'visible': [True, False, False, True, True]}),
     # Test adding multichannel image with custom colormaps.
-    ((), {'colormap': 'gray'}),
+    ((), {'colormap': 'grays'}),
     ((), {'colormap': green_cmap}),
     ((), {'colormap': cmap_tuple}),
     ((), {'colormap': cmap_dict}),
-    ((), {'colormap': ['gray', 'blue', 'red', 'green', 'yellow']}),
+    ((), {'colormap': ['grays', 'blue', 'red', 'green', 'yellow']}),
     (
         (),
         {'colormap': [green_cmap, red_cmap, blue_cmap, blue_cmap, green_cmap]},
     ),
-    ((), {'colormap': [green_cmap, 'gray', cmap_tuple, blue_cmap, cmap_dict]}),
+    (
+        (),
+        {'colormap': [green_cmap, 'grays', cmap_tuple, blue_cmap, cmap_dict]},
+    ),
     ((), {'scale': MULTI_TUPLES}),
     ((), {'translate': MULTI_TUPLES}),
     ((), {'blending': 'translucent'}),
@@ -111,7 +114,7 @@ def test_multichannel(shape, kwargs):
         # make sure colors have been assigned properly
         if 'colormap' not in kwargs:
             if n_channels == 1:
-                assert viewer.layers[i].colormap.name == 'gray'
+                assert viewer.layers[i].colormap.name == 'grays'
             elif n_channels == 2:
                 assert viewer.layers[i].colormap.name == two_colormaps[i]
             else:

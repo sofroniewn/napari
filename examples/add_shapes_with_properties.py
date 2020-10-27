@@ -70,7 +70,7 @@ with napari.gui_qt():
         shape_type='polygon',
         edge_width=1,
         edge_color='likelihood',
-        edge_colormap='gray',
+        edge_colormap='grays',
         face_color='class',
         face_color_cycle=face_color_cycle,
         name='shapes',

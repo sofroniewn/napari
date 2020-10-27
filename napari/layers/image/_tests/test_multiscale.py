@@ -231,7 +231,7 @@ def test_colormaps():
     np.random.seed(0)
     data = [np.random.random(s) for s in shapes]
     layer = Image(data, multiscale=True)
-    assert layer.colormap.name == 'gray'
+    assert layer.colormap.name == 'grays'
     assert isinstance(layer.colormap, Colormap)
 
     layer.colormap = 'magma'

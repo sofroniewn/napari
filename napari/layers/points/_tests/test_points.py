@@ -91,7 +91,7 @@ def test_empty_layer_with_face_colorap():
     layer = Points(
         properties=default_properties,
         face_color='point_type',
-        face_colormap='gray',
+        face_colormap='grays',
     )
 
     assert layer.face_color_mode == 'colormap'
@@ -109,7 +109,7 @@ def test_empty_layer_with_edge_colormap():
     layer = Points(
         properties=default_properties,
         edge_color='point_type',
-        edge_colormap='gray',
+        edge_colormap='grays',
     )
 
     assert layer.edge_color_mode == 'colormap'
@@ -745,7 +745,7 @@ def test_switch_color_mode(attribute):
     color_cycle_kwarg = f'{attribute}_color_cycle'
     args = {
         color_kwarg: initial_color,
-        colormap_kwarg: 'gray',
+        colormap_kwarg: 'grays',
         color_cycle_kwarg: color_cycle,
     }
     layer = Points(data, properties=properties, **args)
@@ -822,7 +822,7 @@ def test_add_colormap(attribute):
     args = {color_kwarg: 'point_type', colormap_kwarg: 'viridis'}
     layer = Points(data, properties=annotations, **args)
 
-    setattr(layer, f'{attribute}_colormap', get_colormap('gray'))
+    setattr(layer, f'{attribute}_colormap', get_colormap('grays'))
     layer_colormap = getattr(layer, f'{attribute}_colormap')
     assert 'unnamed colormap' in layer_colormap.name
 
@@ -1063,7 +1063,7 @@ def test_color_colormap(attribute):
     points_kwargs = {
         'properties': properties,
         f'{attribute}_color': 'point_type',
-        f'{attribute}_colormap': 'gray',
+        f'{attribute}_colormap': 'grays',
     }
     layer = Points(data, **points_kwargs)
     assert layer.properties == properties

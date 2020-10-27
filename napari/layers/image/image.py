@@ -164,7 +164,7 @@ class Image(IntensityVisualizationMixin, Layer):
         data,
         *,
         rgb=None,
-        colormap='gray',
+        colormap='grays',
         contrast_limits=None,
         gamma=1,
         interpolation='nearest',

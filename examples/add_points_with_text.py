@@ -40,7 +40,7 @@ with napari.gui_qt():
         size=20,
         edge_width=7,
         edge_color='confidence',
-        edge_colormap='gray',
+        edge_colormap='grays',
         face_color='good_point',
         face_color_cycle=face_color_cycle,
     )

@@ -257,7 +257,7 @@ class AddLayersMixin:
         }
 
         if channel_axis is None:
-            kwargs['colormap'] = kwargs['colormap'] or 'gray'
+            kwargs['colormap'] = kwargs['colormap'] or 'grays'
             kwargs['blending'] = kwargs['blending'] or 'translucent'
             # Helpful message if someone tries to add mulit-channel kwargs,
             # but forget the channel_axis arg

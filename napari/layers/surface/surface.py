@@ -112,7 +112,7 @@ class Surface(IntensityVisualizationMixin, Layer):
         self,
         data,
         *,
-        colormap='gray',
+        colormap='grays',
         contrast_limits=None,
         gamma=1,
         name=None,
