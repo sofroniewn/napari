@@ -1,73 +1,10 @@
-import os.path
-import subprocess
-import warnings
-
-import numpy as np
 import zarr
-from imageio import imwrite
 
 from .._version import get_versions
 from ..components import ViewerModel
 
 __version__ = get_versions()['version']
 del get_versions
-
-
-def make_square(mat):
-    """Make a matrix square along its first two axes.
-    Parameters
-    ----------
-    mat : array.
-        Array to be made square.
-    Returns
-    ----------
-    out : array
-        Square matrix.
-    """
-    (a, b) = mat.shape[:2]
-    if a > b:
-        padding = ((0, 0), ((a - b) // 2, (a - b + 1) // 2))
-    else:
-        padding = (((b - a) // 2, (b - a + 1) // 2), (0, 0))
-    padding = padding + ((0, 0),) * (mat.ndim - 2)
-    return np.pad(mat, padding, mode='constant')
-
-
-def set_icon(folder, icon):
-    """Set folder to have an icon.
-    Parameters
-    ----------
-    folder : str.
-        Path to folder that will be given icon.
-    icon : str.
-        Base name of icon file located inside target folder.
-    """
-    try:
-        resource_file = os.path.join(folder, 'Icon.rsrc')
-        hidden_icon_file = os.path.join(folder, 'Icon\r')
-        icon_file = icon + '.icns'
-
-        # Create a temporary resource file
-        with open(resource_file, "w") as resource:
-            resource.write(f"read 'icns' (-16455)\"{icon_file}\";")
-
-        # Create an Icon file
-        # Set icon of the folder
-        # Set Icon file to be invisible
-        # Remove the temporary resource file
-        # Set folder to be a package
-        cmds = [
-            ['Rez', '-a', resource_file, '-o', hidden_icon_file],
-            ['SetFile', '-a', 'C', folder],
-            ['SetFile', '-a', 'V', hidden_icon_file],
-            ['rm', '-rf', resource_file],
-            ['SetFile', '-a', 'B', folder],
-        ]
-
-        for c in cmds:
-            subprocess.run(c)
-    except OSError:
-        warnings.warn('icon not set')
 
 
 def to_zarr(viewer, store=None):
@@ -95,21 +32,6 @@ def to_zarr(viewer, store=None):
     layer_gp
     # for layer in viewer.layers:
     #     layer_gp = layer.to_zarr(layer_gp)
-
-    screenshot = viewer.screenshot()
-    root.array(
-        'screenshot',
-        screenshot,
-        shape=screenshot.shape,
-        chunks=(None, None, None),
-        dtype=screenshot.dtype,
-    )
-
-    if store is not None:
-        icon = make_square(screenshot)
-        imwrite(os.path.join(store, 'screenshot.icns'), icon)
-        imwrite(os.path.join(store, 'screenshot.ico'), icon)
-        set_icon(store, 'screenshot')
 
     return root
 
