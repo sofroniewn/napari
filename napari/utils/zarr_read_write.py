@@ -28,9 +28,9 @@ def to_zarr(viewer, store=None):
     root['viewer']['grid'].attrs.put(viewer.grid.asdict())
     root['viewer']['scale_bar'].attrs.put(viewer.scale_bar.asdict())
 
-    layer_gp = root['viewer']['layers']
-    layer_gp
-    # for layer in viewer.layers:
+    for layer in viewer.layers:
+        gp = root['viewer']['layers'].create_group(layer.name)
+        gp
     #     layer_gp = layer.to_zarr(layer_gp)
 
     return root
