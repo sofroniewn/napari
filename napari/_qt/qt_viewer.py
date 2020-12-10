@@ -1,6 +1,5 @@
 import os.path
 import warnings
-from copy import copy
 from pathlib import Path
 from typing import TYPE_CHECKING, Optional
 
@@ -8,7 +7,6 @@ import numpy as np
 from qtpy.QtCore import QCoreApplication, QObject, QSize, Qt
 from qtpy.QtGui import QCursor, QGuiApplication
 from qtpy.QtWidgets import QFileDialog, QSplitter, QVBoxLayout, QWidget
-from vispy.visuals.transforms import ChainTransform
 
 from ..components.camera import Camera
 from ..resources import get_stylesheet
@@ -150,9 +148,6 @@ class QtViewer(QSplitter):
         # Only created if using perfmon.
         self.dockPerformance = self._create_performance_dock_widget()
 
-        # Only created if using async rendering.
-        self.dockRender = self._create_render_dock_widget()
-
         # This dictionary holds the corresponding vispy visual for each layer
         self.layer_to_visual = {}
         self.viewerButtons.consoleButton.clicked.connect(
@@ -284,24 +279,6 @@ class QtViewer(QSplitter):
             )
         return None
 
-    def _create_render_dock_widget(self):
-        """Create the dock widget that shows debug render controls.
-        """
-        # We only show the render controls for octree right now.
-        if config.async_octree:
-            from .experimental.render.qt_render_container import (
-                QtRenderContainer,
-            )
-
-            return QtViewerDockWidget(
-                self,
-                QtRenderContainer(self.viewer),
-                name='render',
-                area='right',
-                shortcut='Ctrl+Shift+R',
-            )
-        return None
-
     @property
     def console(self):
         """QtConsole: iPython console terminal integrated into the napari GUI.
@@ -371,8 +348,7 @@ class QtViewer(QSplitter):
         """
         layer = event.value
         vispy_layer = self.layer_to_visual[layer]
-        vispy_layer.node.transforms = ChainTransform()
-        vispy_layer.node.parent = None
+        vispy_layer.close()
         del vispy_layer
         self._reorder_layers(None)
 
@@ -482,6 +458,14 @@ class QtViewer(QSplitter):
         if folder not in {'', None}:
             self.viewer.open([folder])
 
+    def _toggle_chunk_outlines(self):
+        """Toggle whether we are drawing outlines around the chunks."""
+        from ..layers.image.experimental.octree_image import OctreeImage
+
+        for layer in self.viewer.layers:
+            if isinstance(layer, OctreeImage):
+                layer.display.show_grid = not layer.display.show_grid
+
     def _on_interactive(self, event):
         """Link interactive attributes of view and viewer.
 
@@ -582,7 +566,7 @@ class QtViewer(QSplitter):
         mapped_position = transform.map(list(position))[:nd]
         position_world_slice = mapped_position[::-1]
 
-        position_world = copy(self.viewer.dims.point)
+        position_world = list(self.viewer.dims.point)
         for i, d in enumerate(self.viewer.dims.displayed):
             position_world[d] = position_world_slice[i]
 

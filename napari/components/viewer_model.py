@@ -15,7 +15,7 @@ from ..types import FullLayerData, LayerData
 from ..utils import config
 from ..utils._register import create_func as create_add_method
 from ..utils.colormaps import ensure_colormap
-from ..utils.events import EmitterGroup, Event
+from ..utils.events import EmitterGroup, Event, disconnect_events
 from ..utils.key_bindings import KeymapHandler, KeymapProvider
 from ..utils.misc import is_sequence
 from ..utils.theme import palettes
@@ -60,9 +60,7 @@ class ViewerModel(KeymapHandler, KeymapProvider):
 
     themes = palettes
 
-    def __init__(
-        self, title='napari', ndisplay=2, order=None, axis_labels=None
-    ):
+    def __init__(self, title='napari', ndisplay=2, order=(), axis_labels=()):
         super().__init__()
 
         self.events = EmitterGroup(
@@ -79,7 +77,7 @@ class ViewerModel(KeymapHandler, KeymapProvider):
         )
 
         self.dims = Dims(
-            ndim=None, ndisplay=ndisplay, order=order, axis_labels=axis_labels
+            ndisplay=ndisplay, order=order, axis_labels=axis_labels
         )
 
         self.layers = LayerList()
@@ -547,6 +545,9 @@ class ViewerModel(KeymapHandler, KeymapProvider):
         """
         layer = event.value
 
+        # Coerce name into being unique and connect event to ensure uniqueness
+        layer.name = self.layers._coerce_name(layer.name, layer)
+
         # Connect individual layer events to viewer events
         layer.events.select.connect(self._update_active_layer)
         layer.events.deselect.connect(self._update_active_layer)
@@ -559,9 +560,6 @@ class ViewerModel(KeymapHandler, KeymapProvider):
         layer.events.rotate.connect(self._on_layers_change)
         layer.events.shear.connect(self._on_layers_change)
         layer.events.affine.connect(self._on_layers_change)
-
-        # Coerce name into being unique and connect event to ensure uniqueness
-        layer.name = self.layers._coerce_name(layer.name, layer)
         layer.events.name.connect(self.layers._update_name)
 
         # For the labels layer we need to reset the undo/ redo
@@ -601,10 +599,9 @@ class ViewerModel(KeymapHandler, KeymapProvider):
         """
         layer = event.value
 
-        # Disconnect all events from layer
-        layer.events.disconnect()
-        for em in layer.events.emitters.values():
-            em.disconnect()
+        # Disconnect all connections from layer
+        disconnect_events(layer.events, self)
+        disconnect_events(layer.events, self.layers)
 
         # For the labels layer disconnect history resets
         if hasattr(layer, '_reset_history'):
@@ -1058,7 +1055,7 @@ class ViewerModel(KeymapHandler, KeymapProvider):
 
 def _get_image_class() -> layers.Image:
     """Return Image or OctreeImage based config settings."""
-    if config.create_octree_image():
+    if config.async_octree:
         from ..layers.image.experimental.octree_image import OctreeImage
 
         return OctreeImage
