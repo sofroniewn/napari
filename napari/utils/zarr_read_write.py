@@ -23,6 +23,7 @@ def to_zarr(viewer, store=None):
     root['viewer'].attrs['theme'] = viewer.theme
 
     root['viewer']['axes'].attrs.put(viewer.axes.asdict())
+    root['viewer']['axes'].attrs.put(viewer.dims.asdict())
     root['viewer']['camera'].attrs.put(viewer.camera.asdict())
     root['viewer']['cursor'].attrs.put(viewer.cursor.asdict())
     root['viewer']['grid'].attrs.put(viewer.grid.asdict())
